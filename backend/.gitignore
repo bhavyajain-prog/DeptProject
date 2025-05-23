@@ -1,3 +1,7 @@
+.vscode
+.idea
+data
 node_modules
 package-lock.json
 .env
+guide.*
