@@ -80,19 +80,13 @@ router.post(
     let code;
     let exists = true;
     while (exists) {
-      code = Math.random().toString(36).substr(2, 8).toUpperCase();
+      code = Math.random().toString(36).substr(2, 6).toUpperCase(); // 6 characters
       exists = await Team.exists({ code });
     }
-    const existingTeam = await Team.findOne({ code });
-    if (existingTeam) {
-      return res
-        .status(400)
-        .json({ message: "Team with this code already exists." });
-    }
+
     const newTeam = new Team({
       code,
       leader: req.user._id,
-      members,
       projectChoices,
       mentor: {
         preferences: mentorChoices,

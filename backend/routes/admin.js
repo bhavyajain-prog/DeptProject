@@ -54,6 +54,9 @@ router.get(
   authorizeRoles("admin", "sub-admin"),
   asyncHandler(async (req, res) => {
     const teams = await Team.find()
+      .select(
+        "_id code name leader members projectChoices mentor status feedback"
+      )
       .populate({
         path: "members.student",
         select: "-password",
@@ -67,28 +70,24 @@ router.get(
         select: "-password",
       })
       .populate({
-        path: "mentor.preferences.mentor",
+        path: "mentor.preferences",
         select: "-password",
       })
       .populate({
-        path: "project.projectBankRef",
+        path: "projectChoices",
+        select: "_id title description category",
       })
-      .lean();
+      .exec(); // Don't use .lean() to retain virtuals
+
     if (!teams || teams.length === 0) {
       return res.status(404).json({ message: "No teams found" });
     }
-    // Add virtuals manually since .lean() doesn't include them
-    const teamsWithVirtuals = teams.map((team) => ({
-      ...team,
-      teamSize: team.members?.length || 0,
-      averageWeeklyProgress: team.evaluation?.weeklyProgress?.length
-        ? team.evaluation.weeklyProgress.reduce(
-            (acc, curr) => acc + curr.score,
-            0
-          ) / team.evaluation.weeklyProgress.length
-        : 0,
-    }));
-    res.status(200).json({ teams: teamsWithVirtuals });
+
+    res.status(200).json({
+      teams: teams.map((team) => ({
+        ...team.toObject({ virtuals: true }),
+      })),
+    });
   })
 );
 
@@ -136,11 +135,22 @@ router.post(
   authenticate,
   authorizeRoles("admin"),
   asyncHandler(async (req, res) => {
-    const { name, username, email, phone, role, rollNumber, empNo } = req.body;
+    const {
+      name,
+      username,
+      email,
+      phone,
+      role,
+      studentData,
+      mentorData,
+      adminData,
+    } = req.body;
 
     // Validate required fields
-    if (!username || !email || !phone || !role) {
-      return res.status(400).json({ message: "All fields are required" });
+    if (!name || !username || !email || !phone || !role) {
+      return res.status(400).json({
+        message: "Name, username, email, phone, and role are required",
+      });
     }
 
     // Check if user already exists
@@ -148,41 +158,55 @@ router.post(
       $or: [{ username }, { email }, { phone }],
     });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    // Validate role-specific fields
-    if (role === "student" && !rollNumber) {
       return res
         .status(400)
-        .json({ message: "Roll number is required for students" });
-    }
-    if ((role === "mentor" || role === "sub-admin") && !empNo) {
-      return res.status(400).json({
-        message: "Employee number is required for mentors and sub-admins",
-      });
+        .json({ message: "User already exists (username, email, or phone)" });
     }
 
-    // Hash default password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(process.env.DEFAULT_PASS, salt);
-
-    // Create user object
-    const user = new User({
+    // Prepare base user data
+    let userData = {
       name,
       username,
       email,
       phone,
       role,
-      password: hashedPassword,
-      ...(role === "student" && { rollNumber }),
-      ...(role === "mentor" || role === "sub-admin" ? { empNo } : {}),
-    });
+    };
+
+    // Validate and add role-specific fields
+    if (role === "student") {
+      userData.studentData = studentData || {};
+    } else if (role === "mentor" || role === "sub-admin") {
+      userData.mentorData = mentorData || {};
+      // If the role is sub-admin, adminData is also required by the model
+      if (role === "sub-admin") {
+        // Assuming empNo and department for adminData are the same as mentorData for sub-admins
+        // and permissions can be an empty array by default or set later.
+        userData.adminData = adminData || {};
+        userData.mentorData = mentorData || {};
+      }
+    } else if (role === "admin") {
+      // For a pure admin (not sub-admin)
+      userData.adminData = adminData || {};
+    }
+
+    // Hash default password (or a password from req.body if you plan to allow setting it on registration)
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(
+      process.env.DEFAULT_PASS || "password123", // Fallback if DEFAULT_PASS is not set
+      salt
+    );
+    userData.password = hashedPassword;
+    console.log(userData);
+
+    // Create user object
+    const user = new User(userData);
 
     // Save user to database
     await user.save();
 
-    res.status(201).json({ message: "User registered successfully" });
+    res
+      .status(201)
+      .json({ message: "User registered successfully", userId: user._id });
   })
 );
 
@@ -202,74 +226,160 @@ router.delete(
 router.put(
   "/user/:id",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin"), // Or consider ["admin", "sub-admin"] if sub-admins can edit certain users
   asyncHandler(async (req, res) => {
-    const { name, email, role, phone, username } = req.body;
+    const { id } = req.params;
+    const { name, email, role, phone, username, studentData, mentorData } =
+      req.body;
 
-    // Only allow update for student, mentor, or sub-admin
-    if (!["student", "mentor", "sub-admin"].includes(role)) {
+    const userToUpdate = await User.findById(id);
+    if (!userToUpdate) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const newRole = role || userToUpdate.role;
+
+    if (!["student", "mentor", "sub-admin"].includes(newRole)) {
       return res.status(400).json({
         message:
-          "Only students, mentors, or sub-admins can be updated via this route.",
+          "Updates via this route are restricted to students, mentors, or sub-admins.",
       });
     }
 
-    let updateData = {
-      ...(name && { name }),
-      ...(email && { email }),
-      ...(role && { role }),
-      ...(phone && { phone }),
-      ...(username && { username }),
-    };
+    let updateFields = {}; // Fields for $set
 
-    if (role === "student" && req.body.studentData) {
-      updateData.studentData = {
-        ...(req.body.studentData.rollNumber && {
-          rollNumber: req.body.studentData.rollNumber,
-        }),
-        ...(req.body.studentData.batch && {
-          batch: req.body.studentData.batch,
-        }),
-      };
-    } else if (
-      (role === "mentor" || role === "sub-admin") &&
-      req.body.mentorData
-    ) {
-      updateData.mentorData = {
-        ...(req.body.mentorData.empNo && { empNo: req.body.mentorData.empNo }),
-        ...(req.body.mentorData.department && {
-          department: req.body.mentorData.department,
-        }),
-        ...(req.body.mentorData.designation && {
-          designation: req.body.mentorData.designation,
-        }),
-        ...(req.body.mentorData.qualifications && {
-          qualifications: req.body.mentorData.qualifications,
-        }),
-        ...(req.body.mentorData.maxTeams && {
-          maxTeams: req.body.mentorData.maxTeams,
-        }),
-      };
-    } else if (req.body.adminData) {
-      // Prevent adminData update
-      return res
-        .status(400)
-        .json({ message: "adminData cannot be updated via this route." });
+    // Update top-level fields
+    if (name !== undefined) updateFields.name = name;
+    if (email !== undefined && email !== userToUpdate.email) {
+      const existing = await User.findOne({ email });
+      if (existing && existing._id.toString() !== id)
+        return res.status(400).json({ message: "Email already in use." });
+      updateFields.email = email;
+    }
+    if (phone !== undefined && phone !== userToUpdate.phone) {
+      const existing = await User.findOne({ phone });
+      if (existing && existing._id.toString() !== id)
+        return res.status(400).json({ message: "Phone already in use." });
+      updateFields.phone = phone;
+    }
+    if (username !== undefined && username !== userToUpdate.username) {
+      const existing = await User.findOne({ username });
+      if (existing && existing._id.toString() !== id)
+        return res.status(400).json({ message: "Username already in use." });
+      updateFields.username = username;
+    }
+    if (role !== undefined && role !== userToUpdate.role) {
+      updateFields.role = role;
     }
 
-    const user = await User.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
-      runValidators: true,
-    })
+    // Handle studentData
+    if (newRole === "student" && studentData) {
+      Object.keys(studentData).forEach((key) => {
+        if (studentData[key] !== undefined) {
+          // Allow setting null or empty strings
+          updateFields[`studentData.${key}`] = studentData[key];
+        }
+      });
+    }
+
+    // Handle mentorData and adminData implications for mentor/sub-admin
+    if ((newRole === "mentor" || newRole === "sub-admin") && mentorData) {
+      Object.keys(mentorData).forEach((key) => {
+        if (mentorData[key] !== undefined) {
+          if (key === "maxTeams") {
+            updateFields[`mentorData.${key}`] = Number(mentorData[key]);
+          } else {
+            updateFields[`mentorData.${key}`] = mentorData[key];
+          }
+        }
+      });
+    }
+
+    // Specific logic for role transitions and ensuring data consistency
+    if (updateFields.role) {
+      // If role is changing
+      if (updateFields.role === "sub-admin") {
+        updateFields["adminData.isSubAdmin"] = true;
+        const empNoForAdmin =
+          mentorData?.empNo || userToUpdate.mentorData?.empNo;
+        const deptForAdmin =
+          mentorData?.department || userToUpdate.mentorData?.department;
+
+        if (!empNoForAdmin)
+          return res.status(400).json({
+            message: "Employee number required for sub-admin promotion.",
+          });
+        if (!deptForAdmin)
+          return res
+            .status(400)
+            .json({ message: "Department required for sub-admin promotion." });
+
+        updateFields["adminData.empNo"] = empNoForAdmin;
+        updateFields["adminData.department"] = deptForAdmin;
+        if (!userToUpdate.adminData) {
+          // Initialize if adminData didn't exist
+          updateFields["adminData.permissions"] = [];
+        }
+      } else if (
+        userToUpdate.role === "sub-admin" &&
+        updateFields.role === "mentor"
+      ) {
+        // Demoting from sub-admin to mentor
+        updateFields["adminData.isSubAdmin"] = false;
+        // Optionally clear other adminData fields if they are exclusively for sub-admins
+      }
+    } else if (newRole === "sub-admin") {
+      // Role is not changing but is sub-admin, ensure adminData is correct
+      updateFields["adminData.isSubAdmin"] = true;
+      const empNoForAdmin = mentorData?.empNo || userToUpdate.mentorData?.empNo;
+      const deptForAdmin =
+        mentorData?.department || userToUpdate.mentorData?.department;
+
+      if (empNoForAdmin) updateFields["adminData.empNo"] = empNoForAdmin;
+      else if (!userToUpdate.adminData?.empNo)
+        return res
+          .status(400)
+          .json({ message: "Employee number missing for sub-admin." });
+
+      if (deptForAdmin) updateFields["adminData.department"] = deptForAdmin;
+      else if (!userToUpdate.adminData?.department)
+        return res
+          .status(400)
+          .json({ message: "Department missing for sub-admin." });
+
+      if (!userToUpdate.adminData && empNoForAdmin && deptForAdmin) {
+        // Initialize if adminData didn't exist but now has info
+        updateFields["adminData.permissions"] = [];
+      }
+    }
+
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(200).json({
+        message: "No updatable fields provided.",
+        user: userToUpdate.toObject({ virtuals: true }),
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { $set: updateFields },
+      {
+        new: true,
+        runValidators: true,
+        context: "query", // Important for some validators, especially unique checks on sub-documents if any
+      }
+    )
       .select("-password")
       .populate("studentData.currentTeam mentorData.assignedTeams");
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    if (!updatedUser) {
+      // Should ideally not happen if userToUpdate was found, but as a safeguard
+      return res.status(500).json({ message: "Failed to update user." });
     }
+
     res.status(200).json({
       message: "User updated successfully",
-      user,
+      user: updatedUser.toObject({ virtuals: true }),
     });
   })
 );
@@ -374,9 +484,9 @@ router.post(
       // Prepare bulk operations
       const bulkOps = data.map((row) => {
         const email = row.email?.trim();
-        const username = email
-          ? email.replace(/@skit\\.ac\\.in$/, "")
-          : undefined;
+        const username = email.split("@")[0].trim();
+        // console.log(username);
+
         return {
           updateOne: {
             filter: { email },
@@ -390,6 +500,7 @@ router.post(
                 role: "student",
                 "studentData.rollNumber": row.rollNumber,
                 "studentData.batch": row.batch,
+                "studentData.department": row.department,
               },
             },
             upsert: true,
@@ -506,7 +617,8 @@ router.post(
     }
 
     team.status = "approved";
-    const feedback = req.body;
+    const { feedback } = req.body;
+
     if (feedback) {
       team.feedback.push({
         message: feedback,
@@ -617,7 +729,7 @@ router.post(
   authenticate,
   authorizeRoles("admin", "sub-admin"),
   asyncHandler(async (req, res) => {
-    const { code, mentor_id } = req.params;
+    const { code, mentor_id, finalProject } = req.params;
     const team = await Team.findOne({ code });
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
@@ -628,6 +740,20 @@ router.post(
     }
     if (team.status !== "approved") {
       return res.status(400).json({ message: "Team is not approved" });
+    }
+    if (finalProject) {
+      const project = await Project.findById(finalProject);
+      if (!project || !project.isApproved) {
+        return res
+          .status(400)
+          .json({ message: "Final project is not approved or does not exist" });
+      }
+      if (team.projectChoices && !team.projectChoices.includes(project._id)) {
+        return res.status(400).json({
+          message: "Final project must be one of the team's project choices",
+        });
+      }
+      team.finalProject = project._id;
     }
     if (team.mentor.assigned) {
       return res.status(400).json({ message: "Team already has a mentor" });

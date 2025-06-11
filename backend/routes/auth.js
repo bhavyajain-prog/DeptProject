@@ -18,10 +18,21 @@ router.get(
   "/me",
   authenticate,
   asyncHandler(async (req, res) => {
+    console.log(
+      `[AuthRoutes] /auth/me route hit. Authenticated user:`,
+      req.user
+    );
+
     const user = await User.findById(req.user._id).lean().select("-password");
     if (!user) {
+      console.log(
+        "[AuthRoutes] /auth/me - User not found in DB for ID:",
+        req.user._id
+      );
       return res.status(404).json({ message: "User not found" });
     }
+    console.log("[AuthRoutes] /auth/me - User found in DB:", user);
+
     res.status(200).json({ user });
   })
 );
@@ -29,6 +40,7 @@ router.get(
 router.post(
   "/login",
   asyncHandler(async (req, res) => {
+    console.log("[AuthRoutes] /auth/login route hit. Body:", req.body);
     const { username, password, rememberMe } = req.body;
 
     // Validate input
@@ -41,9 +53,17 @@ router.post(
     // Find user and validate password
     const user = await User.findOne({ username }).select("+password");
     if (!user || !(await bcrypt.compare(password, user.password))) {
+      console.log(
+        "[AuthRoutes] /auth/login - Invalid username or password for username:",
+        username
+      );
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
+    console.log(
+      "[AuthRoutes] /auth/login - User authenticated:",
+      user.username
+    );
     // Generate token
     const expiresIn = rememberMe ? "7d" : "1d";
     const token = jwt.sign(
@@ -63,18 +83,25 @@ router.post(
     // Check for first login
     if (user.firstLogin) {
       user.firstLogin = false;
-      flag = true;
       await user.save();
+      console.log(
+        "[AuthRoutes] /auth/login - First login detected for user:",
+        user.username
+      );
       return res
         .status(200)
         .cookie("token", token, cookieOptions)
-        .json({ message: "Login successful", firstLogin: true });
+        .json({ message: "Login successful", firstLogin: true, user });
     }
+    console.log(
+      "[AuthRoutes] /auth/login - Standard login for user:",
+      user.username
+    );
     // TODO: check if first login and redirect to change password page
     res
       .status(200)
       .cookie("token", token, cookieOptions)
-      .json({ message: "Login successful" });
+      .json({ message: "Login successful", user });
   })
 );
 // TODO: Logout handled in client-side
@@ -83,6 +110,10 @@ router.post(
 router.post(
   "/forgot-password",
   asyncHandler(async (req, res) => {
+    console.log(
+      "[AuthRoutes] /auth/forgot-password route hit. Email:",
+      req.body.email
+    );
     const { email } = req.body;
 
     // Validate input
@@ -92,9 +123,17 @@ router.post(
 
     const user = await User.findOne({ email });
     if (!user) {
+      console.log(
+        "[AuthRoutes] /auth/forgot-password - User not found for email:",
+        email
+      );
       return res.status(404).json({ message: "User not found" });
     }
 
+    console.log(
+      "[AuthRoutes] /auth/forgot-password - User found, sending reset email to:",
+      email
+    );
     // Generate reset token
     const resetToken = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
@@ -132,6 +171,9 @@ router.post(
   asyncHandler(async (req, res) => {
     const { token } = req.params;
     const { newPassword } = req.body;
+    console.log(
+      `[AuthRoutes] /auth/reset-password/:token route hit. Token: ${token}`
+    );
 
     // Validate input
     if (!newPassword) {
@@ -142,16 +184,32 @@ router.post(
     let payload;
     try {
       payload = jwt.verify(token, process.env.JWT_SECRET);
+      console.log(
+        "[AuthRoutes] /auth/reset-password - Token verified. Payload:",
+        payload
+      );
     } catch (err) {
+      console.error(
+        "[AuthRoutes] /auth/reset-password - Token verification failed:",
+        err.message
+      );
       return res.status(400).json({ message: "Invalid or expired token" });
     }
 
     // Find user
     const user = await User.findById(payload._id);
     if (!user) {
+      console.log(
+        "[AuthRoutes] /auth/reset-password - User not found for ID from token:",
+        payload._id
+      );
       return res.status(404).json({ message: "User not found" });
     }
 
+    console.log(
+      "[AuthRoutes] /auth/reset-password - User found, updating password for:",
+      user.username
+    );
     // Update password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
