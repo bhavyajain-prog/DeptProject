@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "./AuthContext";
-import axios from "../api/axios";
+import axios from "../../../services/axios";
+import { useAuth } from "../../../contexts/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -9,21 +9,23 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
+  const [error, setError] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError(""); // Clear previous errors
     try {
       const res = await axios.post(
         "/auth/login",
         { username, password, rememberMe },
         { withCredentials: true }
       );
-
+      console.log("Login response:", res.data); // Log the response for debugging
+      
       if (res.data.user) {
         setUser(res.data.user);
-        console.log("Logged in as", res.data.user);
 
-        // Redirect based on role
+        // Redirect based on role immediately
         switch (res.data.user.role) {
           case "student":
             navigate("/home");
@@ -31,6 +33,7 @@ export default function Login() {
           case "mentor":
             navigate("/mentor/home");
             break;
+          case "sub-admin": // Added sub-admin role
           case "admin":
             navigate("/admin/home");
             break;
@@ -38,11 +41,21 @@ export default function Login() {
             navigate("/dev");
             break;
           default:
-            navigate("/login");
+            navigate("/login"); // Fallback, though ideally should not happen
         }
+      } else {
+        // Handle cases where user is not returned but no error is thrown (e.g. invalid credentials but backend sends 200 OK)
+        setError(
+          res.data.message || "Login failed. Please check your credentials."
+        );
       }
-    } catch (error) {
-      console.error("Login failed", error);
+    } catch (err) {
+      // console.error("Login failed", err); // Optional: for debugging
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("Login failed. An unexpected error occurred.");
+      }
     }
   };
 
@@ -59,6 +72,7 @@ export default function Login() {
             </label>
             <input
               type="text"
+              value={username} // Bind value to username state
               onChange={(e) => setUsername(e.target.value)}
               required
               className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-200"
@@ -70,11 +84,16 @@ export default function Login() {
             </label>
             <input
               type="password"
+              value={password} // Bind value to password state
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-200"
             />
           </div>
+
+          {error && (
+            <p className="text-sm text-red-600 text-center">{error}</p>
+          )}
 
           <div className="flex items-center justify-between text-sm text-gray-600">
             <label className="flex items-center gap-2">

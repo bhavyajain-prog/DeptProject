@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Select from "react-select";
-import axios from "../api/axios";
-import { useAuth } from "./AuthContext";
-// TODO: Field validation and change batch to dropdown for reduced false value inputs
-// TODO: Later make it fetch details of curr user and hence setting up automatic filling of data
+import axios from "../../../services/axios";
+import { useAuth } from "../../../contexts/AuthContext";
+
 export default function CreateTeam() {
   const navigate = useNavigate();
   const { user } = useAuth();

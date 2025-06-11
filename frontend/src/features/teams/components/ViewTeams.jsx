@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import axios from "../api/axios";
+import axios from "../../../services/axios";
+import { useAuth } from "../../../contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "./AuthContext";
 
 export default function ViewTeams({ mode = "admin" }) {
   const { user } = useAuth();

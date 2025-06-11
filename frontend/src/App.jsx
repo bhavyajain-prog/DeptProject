@@ -4,28 +4,28 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { AuthProvider } from "./components/AuthContext";
+import { AuthProvider } from "./contexts/AuthContext";
 import Header from "./components/Header";
-import Login from "./components/Login";
-import StudentPortal from "./components/StudentPortal";
-import MentorPortal from "./components/MentorPortal";
-import AdminPortal from "./components/AdminPortal";
-import Home from "./components/Home";
-import NotFound from "./components/NotFound";
-import Register from "./components/Register";
-import Redirect from "./components/Redirect";
-import Upload from "./components/AdminUpload";
-import ForgotPassword from "./components/ForgotPassword";
-import ResetPassword from "./components/ResetPassword";
-import CreateTeam from "./components/CreateTeam";
+import Login from "./features/auth/components/Login";
+import StudentPortal from "./features/student/components/StudentPortal";
+import MentorPortal from "./features/mentor/components/MentorPortal";
+import AdminPortal from "./features/admin/components/AdminPortal";
+import Home from "./pages/DevPortal";
+import NotFound from "./pages/NotFound";
+import Register from "./features/auth/components/Register";
+import Upload from "./features/admin/components/AdminUpload";
+import ForgotPassword from "./features/auth/components/ForgotPassword";
+import ResetPassword from "./features/auth/components/ResetPassword";
+import CreateTeam from "./features/teams/components/CreateTeam";
 
-import RoleBasedRoute from "./RoleBasedRoute";
+import RoleBasedRoute from "./routing/RoleBasedRoute";
 
 import "./App.css";
-import MyTeam from "./components/MyTeam";
-import JoinTeam from "./components/JoinTeam";
-import ViewTeams from "./components/ViewTeams";
-import ManualAllocation from "./components/ManualAllocation";
+import MyTeam from "./features/teams/components/MyTeam";
+import JoinTeam from "./features/teams/components/JoinTeam";
+import ViewTeams from "./features/teams/components/ViewTeams";
+import ManageTeams from "./features/admin/components/ManageTeams";
+import ManageMentors from "./features/admin/components/ManageMentors";
 
 export default function App() {
   return (
@@ -33,63 +33,27 @@ export default function App() {
       <AuthProvider>
         <Header />
         <Routes>
-          {/* Public Routes */}
+          {/* Redirect root to login */}
+          <Route path="/" element={<Navigate to="/login" />} />
+
+          {/* Dev Portal: All Pages for UI/UX review */}
+          <Route path="/dev" element={
+            <RoleBasedRoute roles={["dev"]}>
+              <Home />
+            </RoleBasedRoute>
+          } />
+
+          {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Redirect />} />
-          <Route path="/notfound" element={<NotFound />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* Dev Role */}
-          <Route
-            path="/dev"
-            element={
-              <RoleBasedRoute allowedRoles={["dev"]}>
-                <Home />
-              </RoleBasedRoute>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <RoleBasedRoute allowedRoles={["dev", "admin"]}>
-                <Register />
-              </RoleBasedRoute>
-            }
-          />
-
-          {/* Student */}
-          <Route
-            path="/home"
-            element={
-              <RoleBasedRoute allowedRoles={["student"]}>
-                <StudentPortal />
-              </RoleBasedRoute>
-            }
-          />
-
-          {/* Mentor */}
-          <Route
-            path="/mentor/home"
-            element={
-              <RoleBasedRoute allowedRoles={["mentor"]}>
-                <MentorPortal />
-              </RoleBasedRoute>
-            }
-          />
-          <Route
-            path="/mentor/teams"
-            element={
-              <RoleBasedRoute allowedRoles={["mentor"]}>
-                <ViewTeams mode="mentor" />
-              </RoleBasedRoute>
-            }
-          />
-          {/* Admin */}
+          {/* Admin Routes */}
           <Route
             path="/admin/home"
             element={
-              <RoleBasedRoute allowedRoles={["admin"]}>
+              <RoleBasedRoute roles={["admin"]}>
                 <AdminPortal />
               </RoleBasedRoute>
             }
@@ -97,31 +61,41 @@ export default function App() {
           <Route
             path="/admin/upload"
             element={
-              <RoleBasedRoute allowedRoles={["admin"]}>
+              <RoleBasedRoute roles={["admin"]}>
                 <Upload />
-              </RoleBasedRoute>
-            }
-          />
-          <Route
-            path="/admin/teams"
-            element={
-              <RoleBasedRoute allowedRoles={["admin"]}>
-                <ViewTeams />
               </RoleBasedRoute>
             }
           />
           <Route
             path="/admin/manage/teams"
             element={
-              <RoleBasedRoute allowedRoles={["admin"]}>
-                <ManualAllocation />
+              <RoleBasedRoute roles={["admin"]}>
+                <ManageTeams />
+              </RoleBasedRoute>
+            }
+          />
+          <Route
+            path="/admin/manage/mentors"
+            element={
+              <RoleBasedRoute roles={["admin"]}>
+                <ManageMentors />
+              </RoleBasedRoute>
+            }
+          />
+
+          {/* Student Routes */}
+          <Route
+            path="/home"
+            element={
+              <RoleBasedRoute roles={["student"]}>
+                <StudentPortal />
               </RoleBasedRoute>
             }
           />
           <Route
             path="/create-team"
             element={
-              <RoleBasedRoute allowedRoles={["student"]}>
+              <RoleBasedRoute roles={["student"]}>
                 <CreateTeam />
               </RoleBasedRoute>
             }
@@ -129,7 +103,7 @@ export default function App() {
           <Route
             path="/join-team"
             element={
-              <RoleBasedRoute allowedRoles={["student"]}>
+              <RoleBasedRoute roles={["student"]}>
                 <JoinTeam />
               </RoleBasedRoute>
             }
@@ -137,12 +111,35 @@ export default function App() {
           <Route
             path="/my-team"
             element={
-              <RoleBasedRoute allowedRoles={["student"]}>
+              <RoleBasedRoute roles={["student"]}>
                 <MyTeam />
               </RoleBasedRoute>
             }
           />
 
+          {/* Mentor Routes */}
+          <Route
+            path="/mentor/home"
+            element={
+              <RoleBasedRoute roles={["mentor"]}>
+                <MentorPortal />
+              </RoleBasedRoute>
+            }
+          />
+
+          {/* Team Routes (currently public or demo) */}
+          <Route
+            path="/teams/select"
+            element={
+              <div style={{ padding: 40, textAlign: "center" }}>
+                Select Teams Page (UI/UX Demo)
+              </div>
+            }
+          />
+          <Route path="/teams/view" element={<ViewTeams />} />
+
+          {/* Util Routes */}
+          <Route path="/notfound" element={<NotFound />} />
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/notfound" />} />
         </Routes>

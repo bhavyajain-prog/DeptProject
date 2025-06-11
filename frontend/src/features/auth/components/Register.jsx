@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "../api/axios";
+import axios from "../../../services/axios";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -14,6 +14,9 @@ const Register = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setError(""); // Clear previous errors
+    setSuccess(""); // Clear previous success messages
+
     if (password !== cpass) {
       setError("Passwords do not match");
       return;
@@ -27,15 +30,27 @@ const Register = () => {
         email,
         phone,
       });
-      if (!data.registered) {
-        setSuccess("");
-        setError(data.message);
+      // Assuming backend returns a `success` boolean and a `message`
+      if (data.success) {
+        setSuccess(data.message || "Registration successful!");
+        // Optionally clear form fields here
+        setName("");
+        setEmail("");
+        setPhone("");
+        setRole("");
+        setUsername("");
+        setPassword("");
+        setCpass("");
       } else {
-        setError("");
-        setSuccess(data.message);
+        setError(data.message || "Registration failed. Please try again.");
       }
-    } catch (error) {
-      setError("Server Error! Please try again later");
+    } catch (err) {
+      // console.error("Registration failed:", err); // Optional: for debugging
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("Registration failed. An unexpected error occurred.");
+      }
     }
   };
 
@@ -130,7 +145,7 @@ const Register = () => {
               <option value="student">Student</option>
               <option value="coordinator">Project Coordinator</option>
               <option value="mentor">Mentor</option>
-              <option value="subcordinator">Lab Coordinator</option>
+              <option value="sub-admin">Lab Coordinator</option>
             </select>
           </div>
 

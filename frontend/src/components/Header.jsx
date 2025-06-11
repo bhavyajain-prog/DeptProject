@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.jpg";
-import { useAuth } from "./AuthContext";
-import axios from "../api/axios";
+import { useAuth } from "../contexts/AuthContext";
 
 const Header = () => {
   const { user, setUser } = useAuth();
@@ -27,14 +26,9 @@ const Header = () => {
   }, []);
 
   const handleLogout = async () => {
-    try {
-      await axios.post("/auth/logout");
-      setUser(null);
-      setShowDropdown(false);
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+    setUser(null);
+    setShowDropdown(false);
+    navigate("/login");
   };
 
   const getDashboardRoute = () => {
@@ -53,7 +47,7 @@ const Header = () => {
     path === "/forgot-password" || path.startsWith("/reset-password");
 
   return (
-    <header 
+    <header
       className={`bg-white shadow-md py-3 px-6 relative min-h-[70px] z-10 ${
         scrolled ? "shadow-lg" : "shadow-md"
       } transition-shadow duration-300`}
@@ -89,16 +83,24 @@ const Header = () => {
                 }}
                 className="bg-teal-50 hover:bg-teal-100 text-teal-600 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2"
               >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  viewBox="0 0 20 20" 
-                  fill="currentColor" 
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
                   className="w-5 h-5"
                 >
                   {isResetFlow ? (
-                    <path fillRule="evenodd" d="M9.293 2.293a1 1 0 011.414 0l7 7A1 1 0 0117 11h-3.586l-4.707 4.707a1 1 0 01-1.414-1.414L11.586 10H5a1 1 0 110-2h6.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                    <path
+                      fillRule="evenodd"
+                      d="M9.293 2.293a1 1 0 011.414 0l7 7A1 1 0 0117 11h-3.586l-4.707 4.707a1 1 0 01-1.414-1.414L11.586 10H5a1 1 0 110-2h6.586l-4.293-4.293a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
                   ) : (
-                    <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l5.293 5.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                    <path
+                      fillRule="evenodd"
+                      d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l5.293 5.293a1 1 0 010 1.414z"
+                      clipRule="evenodd"
+                    />
                   )}
                 </svg>
                 <span>{isResetFlow ? "Back to Login" : "Home"}</span>
@@ -127,7 +129,7 @@ const Header = () => {
             <div className="absolute top-1/2 right-0 transform -translate-y-1/2">
               {user && !isResetFlow && (
                 <div className="relative">
-                  <button 
+                  <button
                     onClick={() => setShowDropdown(!showDropdown)}
                     className="flex items-center space-x-2 bg-white border border-gray-200 hover:border-teal-300 rounded-full py-2 px-4 shadow-sm hover:shadow transition-all duration-200"
                   >
@@ -137,23 +139,39 @@ const Header = () => {
                     <div className="hidden md:block font-medium text-gray-700 max-w-[120px] truncate">
                       {user.name || "User"}
                     </div>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-500">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-4 h-4 text-gray-500"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                      />
                     </svg>
                   </button>
-                  
+
                   {showDropdown && (
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-20 border border-gray-100">
                       <div className="px-4 py-2 border-b border-gray-100">
-                        <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {user.name}
+                        </p>
                         <p className="text-xs text-gray-500">{user.email}</p>
                       </div>
                       <div className="px-4 py-2 text-xs text-gray-500">
-                        Role: <span className="capitalize font-medium">{user.role}</span>
+                        Role:{" "}
+                        <span className="capitalize font-medium">
+                          {user.role}
+                        </span>
                       </div>
                       <div className="px-2 py-1">
                         <button
-                          onClick={() => navigate('/profile')}
+                          onClick={() => navigate("/profile")}
                           className="block w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
                         >
                           Profile Settings

@@ -1,14 +1,14 @@
 import { Navigate } from "react-router-dom";
-import { useAuth } from "./components/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 
-export default function RoleBasedRoute({ children, allowedRoles }) {
+export default function RoleBasedRoute({ children, roles }) {
   const { user } = useAuth();
 
   if (!user) {
     return <Navigate to="/login" />;
   }
 
-  if (!allowedRoles.includes(user.role) && user.role !== "dev") {
+  if (!roles.includes(user.role) && user.role !== "dev") {
     return <Navigate to="/notfound" />;
   }
 

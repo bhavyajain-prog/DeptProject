@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "../api/axios";
-import { useAuth } from "./AuthContext";
+import axios from "../../../services/axios";
+import { useAuth } from "../../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 function getColorFromString(str) {
