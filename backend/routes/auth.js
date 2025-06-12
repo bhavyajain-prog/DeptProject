@@ -104,7 +104,48 @@ router.post(
       .json({ message: "Login successful", user });
   })
 );
-// TODO: Logout handled in client-side
+
+// PUT /auth/me/password - Set/Update password for the authenticated user (used for first login)
+router.put(
+  "/me/password",
+  authenticate, // Ensures the user is logged in
+  asyncHandler(async (req, res) => {
+    console.log(
+      `[AuthRoutes] /auth/me/password route hit for user: ${req.user.username}`
+    );
+    const { newPassword } = req.body;
+
+    // Validate input
+    if (!newPassword) {
+      return res.status(400).json({ message: "New password is required" });
+    }
+    if (newPassword.length < 6) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters long" });
+    }
+
+    // Find user
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      console.log(
+        `[AuthRoutes] /auth/me/password - User not found for ID: ${req.user._id}`
+      );
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.log(
+      `[AuthRoutes] /auth/me/password - Updating password for user: ${user.username}`
+    );
+    // Update password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.firstLogin = false; // Ensure firstLogin is set to false
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  })
+);
 
 // POST /forgot-password - Request password reset
 router.post(
