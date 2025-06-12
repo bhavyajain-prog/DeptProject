@@ -21,27 +21,37 @@ export default function Login() {
         { withCredentials: true }
       );
       console.log("Login response:", res.data); // Log the response for debugging
-      
+
       if (res.data.user) {
         setUser(res.data.user);
 
-        // Redirect based on role immediately
-        switch (res.data.user.role) {
-          case "student":
-            navigate("/home");
-            break;
-          case "mentor":
-            navigate("/mentor/home");
-            break;
-          case "sub-admin": // Added sub-admin role
-          case "admin":
-            navigate("/admin/home");
-            break;
-          case "dev":
-            navigate("/dev");
-            break;
-          default:
-            navigate("/login"); // Fallback, though ideally should not happen
+        if (res.data.firstLogin) {
+          // Redirect to reset password page for first login
+          navigate("/reset-password", {
+            state: {
+              firstLogin: true,
+              userRole: res.data.user.role,
+            },
+          });
+        } else {
+          // Redirect based on role immediately
+          switch (res.data.user.role) {
+            case "student":
+              navigate("/home");
+              break;
+            case "mentor":
+              navigate("/mentor/home");
+              break;
+            case "sub-admin": // Added sub-admin role
+            case "admin":
+              navigate("/admin/home");
+              break;
+            case "dev":
+              navigate("/dev");
+              break;
+            default:
+              navigate("/login"); // Fallback, though ideally should not happen
+          }
         }
       } else {
         // Handle cases where user is not returned but no error is thrown (e.g. invalid credentials but backend sends 200 OK)
@@ -91,9 +101,7 @@ export default function Login() {
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-red-600 text-center">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
           <div className="flex items-center justify-between text-sm text-gray-600">
             <label className="flex items-center gap-2">

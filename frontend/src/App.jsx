@@ -26,6 +26,7 @@ import JoinTeam from "./features/teams/components/JoinTeam";
 import ViewTeams from "./features/teams/components/ViewTeams";
 import ManageTeams from "./features/admin/components/ManageTeams";
 import ManageMentors from "./features/admin/components/ManageMentors";
+import ManageStudents from "./features/admin/components/ManageStudents";
 
 export default function App() {
   return (
@@ -79,6 +80,14 @@ export default function App() {
             element={
               <RoleBasedRoute roles={["admin"]}>
                 <ManageMentors />
+              </RoleBasedRoute>
+            }
+          />
+          <Route
+            path="/admin/manage/students"
+            element={
+              <RoleBasedRoute roles={["admin"]}>
+                <ManageStudents />
               </RoleBasedRoute>
             }
           />
