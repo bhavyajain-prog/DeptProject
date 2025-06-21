@@ -22,7 +22,6 @@ async function fixedUsers() {
       email: process.env.DEV_EMAIL || "dev@dept.edu",
       password: process.env.DEV_PASS || "dev123",
       role: "dev",
-      // dev role doesn't require additional data
     },
   ];
 
@@ -30,7 +29,6 @@ async function fixedUsers() {
     try {
       const existingUser = await User.findOne({ username: user.username });
       if (!existingUser) {
-        console.log(`Creating ${user.role} user...`);
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(user.password, salt);
 
@@ -44,16 +42,12 @@ async function fixedUsers() {
           lastLogin: new Date(),
         };
 
-        // Add role-specific data
         if (user.role === "admin") {
           userData.adminData = user.adminData;
         }
 
         const newUser = new User(userData);
         await newUser.save();
-        // console.log(`${user.role} user created successfully`);
-      } else {
-        // console.log(`${user.role} user already exists`);
       }
     } catch (error) {
       console.error(`Error creating ${user.role} user:`, error.message);

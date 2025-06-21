@@ -1,7 +1,7 @@
 const express = require("express");
 require("dotenv").config();
 const cors = require("cors");
-const cookieParser = require("cookie-parser"); // Added cookie-parser
+const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 const errorManager = require("./middleware/errorManager");
 const fixedUsers = require("./middleware/fixedUsers");
@@ -27,7 +27,7 @@ connectDB()
 const app = express();
 app.use(express.json());
 app.use(cors(corsOptions));
-app.use(cookieParser()); // Added cookie-parser middleware
+app.use(cookieParser());
 
 app.use("/auth", auth);
 app.use("/admin", admin);

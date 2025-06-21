@@ -28,7 +28,7 @@ const projectBankSchema = new mongoose.Schema(
         at: { type: Date, default: Date.now },
       },
     ],
-    isActive: { type: Boolean, default: true },
+    isActive: { type: Boolean, default: false }, 
   },
   {
     timestamps: true,
@@ -37,11 +37,9 @@ const projectBankSchema = new mongoose.Schema(
   }
 );
 
-// Indexes for performance
 projectBankSchema.index({ category: 1 });
 projectBankSchema.index({ isApproved: 1 });
 
-// Virtual to check if project is available
 projectBankSchema.virtual("isAvailable").get(function () {
   return (
     this.isActive &&
@@ -50,9 +48,8 @@ projectBankSchema.virtual("isAvailable").get(function () {
   );
 });
 
-// Middleware to prevent exceeding maxTeams
 projectBankSchema.pre("save", function (next) {
-  if (this.assignedTeams.length >= this.maxTeams) {
+  if (this.assignedTeams.length > this.maxTeams) {
     return next(
       new Error(
         `Cannot assign more than ${this.maxTeams} teams to this project`

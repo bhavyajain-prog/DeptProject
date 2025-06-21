@@ -51,16 +51,19 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     phone: {
       type: String,
-      required: function () {
-        return !["admin", "dev"].includes(this.role);
-      },
       validate: {
-        validator: (v) => /^\d{10}$/.test(v),
+        validator: function (v) {
+          if (["admin", "dev"].includes(this.role)) {
+            return true;
+          }
+          return /^\d{10}$/.test(v);
+        },
         message: (props) =>
-          `${props.value} is not a valid 10-digit phone number!`,
+          `${props.value} is not a valid 10-digit phone number or is required for this role!`,
       },
       unique: true,
     },
+
     role: {
       type: String,
       enum: ["student", "admin", "mentor", "sub-admin", "dev"],
@@ -93,13 +96,17 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Indexes for performance
 userSchema.index({ role: 1 });
-// Compound index for role-specific queries
 userSchema.index({ role: 1, "studentData.batch": 1 });
 userSchema.index({ role: 1, "mentorData.department": 1 });
 
-// Virtual for full user information
+userSchema.pre("validate", function (next) {
+  if (!["admin", "dev"].includes(this.role) && !this.phone) {
+    this.invalidate("phone", "Phone number is required for this role.");
+  }
+  next();
+});
+
 userSchema.virtual("roleData").get(function () {
   switch (this.role) {
     case "student":

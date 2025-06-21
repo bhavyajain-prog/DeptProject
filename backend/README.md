@@ -1,6 +1,6 @@
 # Backend
 
-This directory contains the server-side code for the Project Allocation Process and Evaluation application.
+This directory contains the server-side code for PAMS (Project Allocation and Management System).
 
 ## Project Structure
 
@@ -24,17 +24,17 @@ This directory contains the server-side code for the Project Allocation Process 
 
 1. Navigate to the `backend` directory:
 
-    ```bash
-    cd backend
-    ```
+   ```bash
+   cd backend
+   ```
 
 2. Install dependencies:
 
-    ```bash
-    npm install
-    # or
-    # yarn install
-    ```
+   ```bash
+   npm install
+   # or
+   # yarn install
+   ```
 
 3. Create a `.env` file in the `backend` directory and add the necessary environment variables (e.g., `PORT`, `MONGODB_URI`, `JWT_SECRET`, `EMAIL_USER`, `EMAIL_PASS`). Refer to the configuration files and code for required variables.
 
@@ -42,19 +42,19 @@ This directory contains the server-side code for the Project Allocation Process 
 
 1. Start the development server:
 
-    ```bash
-    npm run dev
-    # or
-    # yarn dev
-    ```
+   ```bash
+   npm run dev
+   # or
+   # yarn dev
+   ```
 
-    (Assuming you have a `dev` script in your `package.json` like `"dev": "nodemon index.js"`)
+   (Assuming you have a `dev` script in your `package.json` like `"dev": "nodemon index.js"`)
 
-    If not, you can use:
+   If not, you can use:
 
-    ```bash
-    node index.js
-    ```
+   ```bash
+   node index.js
+   ```
 
 ## API Endpoints
 

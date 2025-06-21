@@ -13,6 +13,7 @@ const authenticate = require("../middleware/authenticate");
 const insertUsers = require("../middleware/fixedUsers");
 const fs = require("fs");
 const path = require("path");
+const nodemailer = require("nodemailer");
 
 const upload = multer({ dest: "uploads/" });
 
@@ -77,7 +78,7 @@ router.get(
         path: "projectChoices",
         select: "_id title description category",
       })
-      .exec(); // Don't use .lean() to retain virtuals
+      .exec();
 
     if (!teams || teams.length === 0) {
       return res.status(404).json({ message: "No teams found" });
@@ -96,13 +97,101 @@ router.get(
   authenticate,
   authorizeRoles("admin"),
   asyncHandler(async (req, res) => {
-    const projects = await Project.find({ isApproved: false })
-      .select("_id title description category proposedBy")
-      .lean();
-    if (!projects || projects.length === 0) {
-      return res.status(404).json({ message: "No unapproved projects found." });
+    const projects = await Project.find()
+      .populate("approvedBy", "name email")
+      .populate("proposedBy", "name email")
+      .sort({ createdAt: -1 });
+
+    if (!projects) {
+      return res.status(404).json({ message: "No projects found." });
     }
     res.status(200).json({ projects });
+  })
+);
+
+router.post(
+  "/projects",
+  authenticate,
+  authorizeRoles("admin"),
+  asyncHandler(async (req, res) => {
+    const { title, description, category, maxTeams } = req.body;
+
+    if (!title || !description || !category) {
+      return res
+        .status(400)
+        .json({ message: "Title, description, and category are required." });
+    }
+
+    const newProject = new Project({
+      title,
+      description,
+      category,
+      maxTeams: maxTeams || 1,
+      proposedBy: req.user._id,
+      isApproved: true,
+      approvedBy: req.user._id,
+    });
+
+    await newProject.save();
+    res
+      .status(201)
+      .json({ message: "Project added successfully.", project: newProject });
+  })
+);
+
+router.put(
+  "/projects/:id",
+  authenticate,
+  authorizeRoles("admin"),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { title, description, category, maxTeams } = req.body;
+
+    if (!title || !description || !category) {
+      return res
+        .status(400)
+        .json({ message: "Title, description, and category are required." });
+    }
+
+    const projectToUpdate = await Project.findById(id);
+    if (!projectToUpdate) {
+      return res.status(404).json({ message: "Project not found." });
+    }
+
+    projectToUpdate.title = title;
+    projectToUpdate.description = description;
+    projectToUpdate.category = category;
+    projectToUpdate.maxTeams = maxTeams || projectToUpdate.maxTeams;
+
+    await projectToUpdate.save();
+    res.status(200).json({
+      message: "Project updated successfully.",
+      project: projectToUpdate,
+    });
+  })
+);
+
+router.delete(
+  "/projects/:id",
+  authenticate,
+  authorizeRoles("admin"),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const project = await Project.findById(id);
+
+    if (!project) {
+      return res.status(404).json({ message: "Project not found." });
+    }
+
+    if (project.assignedTeams && project.assignedTeams.length > 0) {
+      return res.status(400).json({
+        message:
+          "Cannot delete project assigned to active teams. Please unassign teams first.",
+      });
+    }
+
+    await Project.findByIdAndDelete(id);
+    res.status(200).json({ message: "Project deleted successfully." });
   })
 );
 
@@ -122,11 +211,121 @@ router.post(
     }
     project.isApproved = true;
     project.approvedBy = req.user._id;
-    if (Array.isArray(project.feedback) && feedback) {
-      project.feedback.push({ message: feedback, byUser: req.user._id });
+
+    if (feedback) {
+      project.feedback.push({
+        message: feedback,
+        byUser: req.user._id,
+        at: new Date(),
+      });
+    } else {
+      project.feedback.push({
+        message: "Project approved.",
+        byUser: req.user._id,
+        at: new Date(),
+      });
     }
     await project.save();
     res.status(200).json({ message: "Project approved successfully." });
+  })
+);
+
+router.post(
+  "/reject-project/:id",
+  authenticate,
+  authorizeRoles("admin"),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { feedback } = req.body;
+
+    const project = await Project.findById(id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found." });
+    }
+
+    if (project.isApproved) {
+      return res.status(400).json({
+        message:
+          "Cannot reject an already approved project. Consider unapproving or deleting.",
+      });
+    }
+
+    project.isApproved = false;
+    project.feedback.push({
+      message: feedback || "Project rejected",
+      byUser: req.user._id,
+      at: new Date(),
+    });
+    await project.save();
+    res.status(200).json({ message: "Project marked as rejected." });
+  })
+);
+
+router.post(
+  "/schedule-project-discussion",
+  authenticate,
+  authorizeRoles("admin"),
+  asyncHandler(async (req, res) => {
+    const { projectId, dateTime } = req.body;
+
+    if (!projectId || !dateTime) {
+      return res
+        .status(400)
+        .json({ message: "Project ID and date/time are required." });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found." });
+    }
+
+    const meetingTime = new Date(dateTime);
+    if (isNaN(meetingTime.getTime())) {
+      return res.status(400).json({ message: "Invalid date/time format." });
+    }
+
+    project.feedback.push({
+      message: `Discussion scheduled for ${meetingTime.toLocaleString()}`,
+      byUser: req.user._id,
+      at: new Date(),
+    });
+    await project.save();
+
+    if (project.proposedBy) {
+      const proposer = await User.findById(project.proposedBy).select(
+        "email name"
+      );
+      if (proposer && proposer.email) {
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+        });
+
+        const mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: proposer.email,
+          subject: `Project Discussion Scheduled: ${project.title}`,
+          text: `Dear ${proposer.name || "User"},\n\nYour project "${
+            project.title
+          }" has a discussion scheduled for ${meetingTime.toLocaleString()}.\n\nBest regards,\nAdmin Team`,
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+          if (error) {
+            console.error("Error sending schedule email:", error);
+          }
+        });
+      }
+    }
+
+    res.status(200).json({
+      message: `Meeting for project '${
+        project.title
+      }' scheduled for ${meetingTime.toLocaleString()}.`,
+    });
   })
 );
 
@@ -146,14 +345,12 @@ router.post(
       adminData,
     } = req.body;
 
-    // Validate required fields
     if (!name || !username || !email || !phone || !role) {
       return res.status(400).json({
         message: "Name, username, email, phone, and role are required",
       });
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({
       $or: [{ username }, { email }, { phone }],
     });
@@ -163,7 +360,6 @@ router.post(
         .json({ message: "User already exists (username, email, or phone)" });
     }
 
-    // Prepare base user data
     let userData = {
       name,
       username,
@@ -172,36 +368,28 @@ router.post(
       role,
     };
 
-    // Validate and add role-specific fields
     if (role === "student") {
       userData.studentData = studentData || {};
     } else if (role === "mentor" || role === "sub-admin") {
       userData.mentorData = mentorData || {};
-      // If the role is sub-admin, adminData is also required by the model
+
       if (role === "sub-admin") {
-        // Assuming empNo and department for adminData are the same as mentorData for sub-admins
-        // and permissions can be an empty array by default or set later.
         userData.adminData = adminData || {};
         userData.mentorData = mentorData || {};
       }
     } else if (role === "admin") {
-      // For a pure admin (not sub-admin)
       userData.adminData = adminData || {};
     }
 
-    // Hash default password (or a password from req.body if you plan to allow setting it on registration)
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(
-      process.env.DEFAULT_PASS || "password123", // Fallback if DEFAULT_PASS is not set
+      process.env.DEFAULT_PASS || "password123",
       salt
     );
     userData.password = hashedPassword;
-    console.log(userData);
 
-    // Create user object
     const user = new User(userData);
 
-    // Save user to database
     await user.save();
 
     res
@@ -226,7 +414,7 @@ router.delete(
 router.put(
   "/user/:id",
   authenticate,
-  authorizeRoles("admin"), // Or consider ["admin", "sub-admin"] if sub-admins can edit certain users
+  authorizeRoles("admin"),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { name, email, role, phone, username, studentData, mentorData } =
@@ -246,9 +434,8 @@ router.put(
       });
     }
 
-    let updateFields = {}; // Fields for $set
+    let updateFields = {};
 
-    // Update top-level fields
     if (name !== undefined) updateFields.name = name;
     if (email !== undefined && email !== userToUpdate.email) {
       const existing = await User.findOne({ email });
@@ -272,17 +459,14 @@ router.put(
       updateFields.role = role;
     }
 
-    // Handle studentData
     if (newRole === "student" && studentData) {
       Object.keys(studentData).forEach((key) => {
         if (studentData[key] !== undefined) {
-          // Allow setting null or empty strings
           updateFields[`studentData.${key}`] = studentData[key];
         }
       });
     }
 
-    // Handle mentorData and adminData implications for mentor/sub-admin
     if ((newRole === "mentor" || newRole === "sub-admin") && mentorData) {
       Object.keys(mentorData).forEach((key) => {
         if (mentorData[key] !== undefined) {
@@ -295,9 +479,7 @@ router.put(
       });
     }
 
-    // Specific logic for role transitions and ensuring data consistency
     if (updateFields.role) {
-      // If role is changing
       if (updateFields.role === "sub-admin") {
         updateFields["adminData.isSubAdmin"] = true;
         const empNoForAdmin =
@@ -317,19 +499,15 @@ router.put(
         updateFields["adminData.empNo"] = empNoForAdmin;
         updateFields["adminData.department"] = deptForAdmin;
         if (!userToUpdate.adminData) {
-          // Initialize if adminData didn't exist
           updateFields["adminData.permissions"] = [];
         }
       } else if (
         userToUpdate.role === "sub-admin" &&
         updateFields.role === "mentor"
       ) {
-        // Demoting from sub-admin to mentor
         updateFields["adminData.isSubAdmin"] = false;
-        // Optionally clear other adminData fields if they are exclusively for sub-admins
       }
     } else if (newRole === "sub-admin") {
-      // Role is not changing but is sub-admin, ensure adminData is correct
       updateFields["adminData.isSubAdmin"] = true;
       const empNoForAdmin = mentorData?.empNo || userToUpdate.mentorData?.empNo;
       const deptForAdmin =
@@ -348,7 +526,6 @@ router.put(
           .json({ message: "Department missing for sub-admin." });
 
       if (!userToUpdate.adminData && empNoForAdmin && deptForAdmin) {
-        // Initialize if adminData didn't exist but now has info
         updateFields["adminData.permissions"] = [];
       }
     }
@@ -366,14 +543,13 @@ router.put(
       {
         new: true,
         runValidators: true,
-        context: "query", // Important for some validators, especially unique checks on sub-documents if any
+        context: "query",
       }
     )
       .select("-password")
       .populate("studentData.currentTeam mentorData.assignedTeams");
 
     if (!updatedUser) {
-      // Should ideally not happen if userToUpdate was found, but as a safeguard
       return res.status(500).json({ message: "Failed to update user." });
     }
 
@@ -400,7 +576,7 @@ router.post(
     if (!file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
-    // Validate file extension and size
+
     const allowedExt = [".xlsx", ".csv"];
     const ext = path.extname(file.originalname).toLowerCase();
     if (!allowedExt.includes(ext)) {
@@ -409,9 +585,8 @@ router.post(
         .status(400)
         .json({ message: "Only .xlsx or .csv files are allowed" });
     }
-    // TODO: Check file size
+
     if (file.size > 5 * 1024 * 1024) {
-      // 5MB limit
       fs.unlinkSync(file.path);
       return res.status(400).json({ message: "File too large (max 5MB)" });
     }
@@ -427,7 +602,7 @@ router.post(
       workbook.SheetNames.forEach((sheetName) => {
         const sheet = workbook.Sheets[sheetName];
         const sheetData = XLSX.utils.sheet_to_json(sheet);
-        // Add sheetName to each row
+
         sheetData.forEach((row) => {
           data.push({ ...row, sheetName });
         });
@@ -439,19 +614,15 @@ router.post(
         skip_empty_lines: true,
       });
     }
-    // Remove the uploaded file after processing
+
     fs.unlinkSync(file.path);
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(process.env.DEFAULT_PASS, salt);
 
-    // Only handle mentors type for now
     if (type === "mentors") {
-      // Prepare bulk operations
       const bulkOps = data.map((row) => {
         const email = row.email?.trim();
-        const username = email
-          ? email.replace(/@skit\\.ac\\.in$/, "")
-          : undefined;
+        const username = email.split("@")[0].trim();
         return {
           updateOne: {
             filter: { email },
@@ -466,6 +637,7 @@ router.post(
                 "mentorData.empNo": row.empNo,
                 "mentorData.department": row.department,
                 "mentorData.designation": row.designation,
+                "mentorData.maxTeams": row.maxTeams || 3,
               },
             },
             upsert: true,
@@ -479,13 +651,10 @@ router.post(
         message: `Mentors uploaded and processed successfully`,
         count: bulkOps.length,
       });
-      // TODO: Verify students format
     } else if (type === "students") {
-      // Prepare bulk operations
       const bulkOps = data.map((row) => {
         const email = row.email?.trim();
         const username = email.split("@")[0].trim();
-        // console.log(username);
 
         return {
           updateOne: {
@@ -526,7 +695,6 @@ router.post(
       });
       data.forEach((row) => {
         let project = {};
-        console.log(row);
         if (!row["__EMPTY_1"]) {
           let fullText = row["__EMPTY"].toString().trim();
           let problem = [];
@@ -542,10 +710,9 @@ router.post(
 
           if (delimiter) {
             let index = fullText.indexOf(delimiter);
-            problem[0] = fullText.slice(0, index).trim(); // title
-            problem[1] = fullText.slice(index + delimiter.length).trim(); // description
+            problem[0] = fullText.slice(0, index).trim();
+            problem[1] = fullText.slice(index + delimiter.length).trim();
           } else {
-            // fallback if no delimiter is found
             problem[0] = fullText;
             problem[1] = "";
           }
@@ -559,7 +726,7 @@ router.post(
         project.category = row["sheetName"];
         newData.push(project);
       });
-      // Prepare bulk operations
+
       const bulkOps = newData.map((row) => {
         return {
           updateOne: {
@@ -570,6 +737,7 @@ router.post(
                 description: row.description,
                 category: row.category,
                 isApproved: true,
+                proposedBy: req.user._id,
                 approvedBy: req.user._id,
               },
             },
@@ -591,19 +759,20 @@ router.post(
 );
 
 router.post(
-  "/approve/:code",
+  "/approve/:id",
   authenticate,
   authorizeRoles("admin", "sub-admin"),
   asyncHandler(async (req, res) => {
-    const { code } = req.params;
-    const team = await Team.findOne({ code });
+    const { id } = req.params;
+    const { feedback } = req.body;
+    const team = await Team.findById(id);
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }
     if (team.status === "approved") {
       return res.status(400).json({ message: "Team already approved" });
     }
-    // Validate all project choices are approved
+
     if (team.projectChoices && team.projectChoices.length > 0) {
       const projects = await Project.find({
         _id: { $in: team.projectChoices },
@@ -617,7 +786,6 @@ router.post(
     }
 
     team.status = "approved";
-    const { feedback } = req.body;
 
     if (feedback) {
       team.feedback.push({
@@ -632,12 +800,13 @@ router.post(
 );
 
 router.post(
-  "/reject/:code",
+  "/reject/:id",
   authenticate,
   authorizeRoles("admin", "sub-admin"),
   asyncHandler(async (req, res) => {
-    const { code } = req.params;
-    const team = await Team.findOne({ code });
+    const { id } = req.params;
+    const { feedback } = req.body;
+    const team = await Team.findById(id);
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }
@@ -645,7 +814,6 @@ router.post(
       return res.status(400).json({ message: "Team already rejected" });
     }
     team.status = "rejected";
-    const feedback = req.body;
     if (feedback) {
       team.feedback.push({
         message: feedback,
@@ -662,7 +830,6 @@ router.get(
   authenticate,
   authorizeRoles("admin", "sub-admin"),
   asyncHandler(async (req, res) => {
-    // Get all mentors who have assignedTeams less than maxTeams
     const mentors = await User.find({
       role: "mentor",
       $expr: {
@@ -676,61 +843,14 @@ router.get(
   })
 );
 
-router.get(
-  "/remaining-students",
-  authenticate,
-  authorizeRoles("admin"),
-  asyncHandler(async (req, res) => {
-    // Get all students who are not assigned to any team
-    const students = await User.find({
-      role: "student",
-      $or: [
-        { "studentData.currentTeam": { $exists: false } },
-        { "studentData.currentTeam": null },
-      ],
-    })
-      .select("_id name email")
-      .populate("studentData.currentTeam");
-    res.status(200).json({ students });
-  })
-);
-
-router.get(
-  "/remaining-teams",
-  authenticate,
-  authorizeRoles("admin", "sub-admin"),
-  asyncHandler(async (req, res) => {
-    // Get all teams that are not assigned to any mentor and are approved or have no more mentor preferences
-    const teams = await Team.find({
-      $or: [
-        { "mentor.assigned": { $exists: false } },
-        { "mentor.assigned": null },
-        { "mentor.currentPreference": -1 },
-      ],
-      status: "approved",
-    })
-      .select("_id leader members projectChoices")
-      .populate("leader", "_id name email")
-      .populate("members.student", "_id name email")
-      .populate("projectChoices", "_id title description category")
-      .lean(); // Use lean for performance
-    const formattedTeams = teams.map((team) => ({
-      _id: team._id,
-      leader: team.leader,
-      members: team.members.map((m) => m.student),
-      projectChoices: team.projectChoices,
-    }));
-    res.status(200).json({ teams: formattedTeams });
-  })
-);
-
 router.post(
-  "/allocate/:code/:mentor_id",
+  "/allocate/:team_id/:mentor_id",
   authenticate,
   authorizeRoles("admin", "sub-admin"),
   asyncHandler(async (req, res) => {
-    const { code, mentor_id, finalProject } = req.params;
-    const team = await Team.findOne({ code });
+    const { team_id, mentor_id } = req.params;
+    const { finalProject } = req.body;
+    const team = await Team.findById(team_id);
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }
@@ -777,9 +897,52 @@ router.delete(
   authorizeRoles("admin"),
   asyncHandler(async (req, res) => {
     await Team.deleteMany({});
+    await Project.deleteMany({});
     await User.deleteMany({ role: { $nin: ["dev", "admin"] } });
     await insertUsers();
     res.status(200).json({ message: "All collections deleted successfully." });
+  })
+);
+
+router.get(
+  "/teams",
+  authenticate,
+  authorizeRoles("admin", "mentor"),
+  asyncHandler(async (req, res) => {
+    try {
+      const teams = await Team.find({})
+        .populate("leader", "name email studentData")
+        .populate("members.student", "name email studentData")
+        .populate("mentor.assigned", "name email")
+        .populate("finalProject", "title description")
+        .lean();
+
+      const teamsWithFormData = teams.map((team) => ({
+        _id: team._id,
+        code: team.code,
+        batch: team.batch,
+        department: team.department,
+        status: team.status,
+        leader: team.leader,
+        members: team.members,
+        mentor: team.mentor,
+        finalProject: team.finalProject,
+        projectAbstract: team.projectAbstract,
+        roleSpecification: team.roleSpecification,
+        evaluation: team.evaluation,
+      }));
+
+      res.status(200).json({
+        success: true,
+        teams: teamsWithFormData,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch teams",
+        error: error.message,
+      });
+    }
   })
 );
 
