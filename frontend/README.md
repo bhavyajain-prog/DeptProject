@@ -1,6 +1,6 @@
 # Frontend
 
-This directory contains the client-side React application for the Project Allocation Process and Evaluation system.
+This directory contains the client-side React application for PAMS (Project Allocation and Management System).
 
 ## Project Structure
 
@@ -38,17 +38,17 @@ This directory contains the client-side React application for the Project Alloca
 
 1. Navigate to the `frontend` directory:
 
-    ```bash
-    cd frontend
-    ```
+   ```bash
+   cd frontend
+   ```
 
 2. Install dependencies:
 
-    ```bash
-    npm install
-    # or
-    # yarn install
-    ```
+   ```bash
+   npm install
+   # or
+   # yarn install
+   ```
 
 3. Create a `.env` file in the `frontend` directory if you need to override default environment variables (e.g., `VITE_API_BASE_URL`). Vite uses `VITE_` prefix for environment variables exposed to the client.
 
@@ -56,13 +56,13 @@ This directory contains the client-side React application for the Project Alloca
 
 1. Start the Vite development server:
 
-    ```bash
-    npm run dev
-    # or
-    # yarn dev
-    ```
+   ```bash
+   npm run dev
+   # or
+   # yarn dev
+   ```
 
-    This will typically start the application on `http://localhost:5173`.
+   This will typically start the application on `http://localhost:5173`.
 
 ## Key Technologies & Libraries
 

@@ -9,6 +9,8 @@ import {
   FaExclamationTriangle,
   FaTrash,
   FaSpinner,
+  FaProjectDiagram,
+  FaClipboardList,
 } from "react-icons/fa"; // Import actual icons
 import axios from "../../../services/axios"; // Import axios
 
@@ -37,6 +39,16 @@ const MentorIcon = () => (
 const StudentIcon = () => (
   <IconWrapper>
     <FaUserGraduate className="text-3xl text-teal-600" />
+  </IconWrapper>
+);
+const ProjectIcon = () => (
+  <IconWrapper>
+    <FaProjectDiagram className="text-3xl text-teal-600" />
+  </IconWrapper>
+);
+const FormsIcon = () => (
+  <IconWrapper>
+    <FaClipboardList className="text-3xl text-teal-600" />
   </IconWrapper>
 );
 // const SettingsIcon = () => <IconWrapper><FaCog className="text-3xl text-teal-600" /></IconWrapper>; // Example for a potential settings card
@@ -110,14 +122,14 @@ export default function AdminPortal() {
       )}
       <div className="max-w-5xl mx-auto">
         <header className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-gray-800">Admin Dashboard</h1>
+          <h1 className="text-5xl font-bold text-gray-800">Admin Dashboard</h1>{" "}
           <p className="mt-5 text-lg text-gray-600 max-w-2xl mx-auto">
-            Streamline your project allocation process with powerful admin tools
-            at your fingertips.
+            Streamline your PAMS workflow with powerful admin tools at your
+            fingertips.
           </p>
         </header>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-8 mb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8 mb-16">
           {" "}
           {/* Added mb-16 */}
           <AdminActionCard
@@ -143,6 +155,18 @@ export default function AdminPortal() {
             title="Manage Students"
             icon={<StudentIcon />}
             description="Access and manage student records, view their team affiliations, and track academic progress."
+          />
+          <AdminActionCard
+            to="/admin/manage/projects"
+            title="Manage Projects"
+            icon={<ProjectIcon />}
+            description="Create, update, and oversee projects. Manage project allocations and track progress."
+          />
+          <AdminActionCard
+            to="/admin/view/forms"
+            title="View Forms"
+            icon={<FormsIcon />}
+            description="Access and review submitted forms for students, mentors, and projects. Manage form statuses and feedback."
           />
           {/* 
           You can add more cards here. For a 2-column layout on larger screens, 

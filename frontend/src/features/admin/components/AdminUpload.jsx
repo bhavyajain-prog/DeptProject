@@ -3,18 +3,25 @@ import axios from "../../../services/axios";
 import { FaUpload, FaSpinner } from "react-icons/fa"; // Added FaSpinner
 
 // Reusable FileInput component for better styling
-const FileInput = ({ id, onChange, accept, fileSelected }) => (
+const FileInput = ({ id, onChange, accept, fileSelected, inputRef }) => (
   <label
     htmlFor={id}
-    className={`w-full max-w-md flex flex-col items-center px-4 py-6 bg-white text-teal-600 rounded-lg shadow-md tracking-wide uppercase border border-teal-300 cursor-pointer hover:bg-teal-500 hover:text-white transition-all duration-150 ease-linear ${
-      fileSelected ? "bg-teal-500" : ""
+    className={`w-full max-w-sm flex flex-col items-center px-4 py-5 bg-white text-teal-600 rounded-lg shadow-md tracking-wide border border-teal-300 cursor-pointer hover:bg-teal-500 hover:text-white transition-all duration-150 ease-linear ${
+      fileSelected ? "bg-teal-50 border-teal-500" : ""
     }`}
   >
-    <FaUpload className="w-8 h-8 mb-2" />
-    <span className="mt-2 text-base leading-normal">
+    <FaUpload
+      className={"w-6 h-6 mb-2 text-teal-600"}
+    />
+    <span
+      className={
+        "mt-1 text-sm leading-normal truncate w-full text-center font-medium text-teal-600"
+      }
+    >
       {fileSelected ? fileSelected.name : "Select a file"}
     </span>
     <input
+      ref={inputRef}
       id={id}
       type="file"
       className="hidden"
@@ -69,12 +76,19 @@ export default function AdminUpload() {
         },
       });
       setMessage(response.data.message || successMessage);
-      if (type === "students") setStudentFile(null);
-      else if (type === "mentors") setMentorFile(null);
-      else if (type === "projects") setProjectFile(null);
 
-      if (fileRef.current) {
-        fileRef.current.value = null; // Clear the file input
+      // Clear the file state and input
+      if (type === "students") {
+        setStudentFile(null);
+      } else if (type === "mentors") {
+        setMentorFile(null);
+      } else if (type === "projects") {
+        setProjectFile(null);
+      }
+
+      // Clear the actual file input
+      if (fileRef && fileRef.current) {
+        fileRef.current.value = "";
       }
     } catch (err) {
       console.error(`Error uploading ${type} data:`, err);
@@ -88,7 +102,6 @@ export default function AdminUpload() {
       setUploadingType("");
     }
   };
-
   const UploadSection = ({
     title,
     file,
@@ -98,29 +111,31 @@ export default function AdminUpload() {
     fileRef,
     currentFileState,
   }) => (
-    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-xl w-full">
-      <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-6 text-center">
+    <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md mx-auto">
+      <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 text-center">
         {title}
       </h3>
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-3">
+        {" "}
         <FileInput
           id={`${fileType}-file-input`}
           onChange={onFileChange}
           accept=".xlsx, .csv"
           fileSelected={currentFileState}
+          inputRef={fileRef}
         />
         <button
           onClick={onUpload}
           disabled={!currentFileState || isUploading} // Disable if no file or already uploading
-          className="mt-2 w-full max-w-md px-6 py-3 bg-teal-500 text-white text-base font-medium rounded-md hover:bg-teal-600 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
+          className="w-full px-4 py-2.5 bg-teal-500 text-white text-sm font-medium rounded-md hover:bg-teal-600 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
         >
           {isUploading && uploadingType === fileType ? (
             <>
-              <FaSpinner className="animate-spin mr-2" /> Uploading...
+              <FaSpinner className="animate-spin mr-2 w-4 h-4" /> Uploading...
             </>
           ) : (
             <>
-              <FaUpload className="mr-2" /> Upload{" "}
+              <FaUpload className="mr-2 w-4 h-4" /> Upload{" "}
               {fileType.charAt(0).toUpperCase() + fileType.slice(1)}
             </>
           )}
@@ -139,31 +154,30 @@ export default function AdminUpload() {
             Uploading {uploadingType} data...
           </p>
         </div>
-      )}
-
-      <div className="max-w-4xl mx-auto">
-        <header className="text-center mb-12 sm:mb-16">
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-800">
+      )}{" "}
+      <div className="max-w-6xl mx-auto">
+        <header className="text-center mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-800">
             Admin Data Upload
           </h1>
-          <p className="mt-4 sm:mt-5 text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="mt-3 sm:mt-4 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto px-4">
             Upload student, mentor, and project bank data using .xlsx or .csv
             files.
           </p>
         </header>
 
         {message && (
-          <div className="mb-6 p-4 bg-green-100 text-green-800 border border-green-300 rounded-lg shadow-sm text-center">
+          <div className="mb-6 p-4 bg-green-100 text-green-800 border border-green-300 rounded-lg shadow-sm text-center mx-4">
             {message}
           </div>
         )}
         {error && (
-          <div className="mb-6 p-4 bg-red-100 text-red-800 border border-red-300 rounded-lg shadow-sm text-center">
+          <div className="mb-6 p-4 bg-red-100 text-red-800 border border-red-300 rounded-lg shadow-sm text-center mx-4">
             {error}
           </div>
         )}
 
-        <div className="space-y-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 px-4">
           <UploadSection
             title="Upload Student Data"
             fileType="students"
