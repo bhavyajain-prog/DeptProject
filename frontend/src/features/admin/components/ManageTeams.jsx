@@ -114,7 +114,7 @@ const TeamCard = ({ team, onToggleExpand, isExpanded, onOpenActionModal }) => {
           )}
           Details
         </button>
-        {team.status === "pending" && (
+        {(team.status === "pending" || team.status === "rejected") && (
           <>
             <button
               onClick={() => onOpenActionModal(team, "approveReject")}
@@ -144,9 +144,6 @@ const TeamCard = ({ team, onToggleExpand, isExpanded, onOpenActionModal }) => {
           <div className="text-sm text-gray-700 space-y-2">
             {" "}
             {/* Increased base font size for this section */}
-            <p>
-              <strong>Team ID:</strong> {team._id}
-            </p>
             <div>
               <strong>Leader:</strong>
               <div className="ml-4 p-2 border-l-2 border-teal-100">
@@ -199,32 +196,33 @@ const TeamCard = ({ team, onToggleExpand, isExpanded, onOpenActionModal }) => {
                 <span className="ml-2 italic">No other members.</span>
               )}
             </div>
-            <div>
-              <strong>Project Choices:</strong>
-              {team.projectChoices?.length > 0 ? (
-                <ul className="list-none ml-4 space-y-3">
-                  {team.projectChoices.map((p, index) => (
-                    <li
-                      key={p._id || index}
-                      className="p-3 border rounded-md shadow-sm bg-slate-50"
-                    >
-                      <p className="font-semibold text-teal-700">
-                        Choice {index + 1}: {p.title || "N/A"}
-                      </p>
-                      <p>
-                        <strong>Category:</strong> {p.category || "N/A"}
-                      </p>
-                      <p className="mt-1">
-                        <strong>Description:</strong> {p.description || "N/A"}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <span className="italic">None</span>
-              )}
-            </div>
-            {team.finalProject && (
+            {!team.finalProject ? (
+              <div>
+                <strong>Project Choices:</strong>
+                {team.projectChoices?.length > 0 ? (
+                  <ul className="list-none ml-4 space-y-3">
+                    {team.projectChoices.map((p, index) => (
+                      <li
+                        key={p._id || index}
+                        className="p-3 border rounded-md shadow-sm bg-slate-50"
+                      >
+                        <p className="font-semibold text-teal-700">
+                          Choice {index + 1}: {p.title || "N/A"}
+                        </p>
+                        <p>
+                          <strong>Category:</strong> {p.category || "N/A"}
+                        </p>
+                        <p className="mt-1">
+                          <strong>Description:</strong> {p.description || "N/A"}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span className="italic">None</span>
+                )}
+              </div>
+            ) : (
               <div className="mt-3">
                 <p className="font-semibold text-lg text-green-700">
                   Final Allocated Project:
@@ -245,30 +243,47 @@ const TeamCard = ({ team, onToggleExpand, isExpanded, onOpenActionModal }) => {
               </div>
             )}
             <div>
-              <strong>Mentor Preferences:</strong>
-              {team.mentor?.preferences?.length > 0 ? (
-                <ul className="list-disc list-inside ml-4">
-                  {team.mentor.preferences.map((pref, index) => (
-                    <li key={pref._id || index}>
-                      {pref.name || pref.username || pref._id || "N/A"}
-                      {index === team.mentor?.currentPreference && (
-                        <span className="text-xs text-blue-500 ml-1">
-                          (Current)
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+              {team.mentor?.currentPreference === -1 &&
+              !team.mentor?.assigned ? (
+                <div>
+                  <strong className="text-red-600">Mentor Status:</strong>
+                  <p className="text-red-600 font-medium ml-4">
+                    Needs manual allocation by administrator
+                  </p>
+                </div>
+              ) : team.mentor?.assigned ? (
+                <div>
+                  <strong>Assigned Mentor:</strong>
+                  <div className="ml-4 p-2 border-l-2 border-green-200 bg-green-50">
+                    <p className="font-medium text-green-700">
+                      {team.mentor.assigned.name ||
+                        team.mentor.assigned.username ||
+                        "N/A"}
+                    </p>
+                  </div>
+                </div>
               ) : (
-                <span>None</span>
+                <div>
+                  <strong>Mentor Preferences:</strong>
+                  {team.mentor?.preferences?.length > 0 ? (
+                    <ul className="list-disc list-inside ml-4">
+                      {team.mentor.preferences.map((pref, index) => (
+                        <li key={pref._id || index}>
+                          {pref.name || pref.username || pref._id || "N/A"}
+                          {index === team.mentor?.currentPreference && (
+                            <span className="text-xs text-blue-500 ml-1">
+                              (Current)
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="italic">None specified</span>
+                  )}
+                </div>
               )}
             </div>
-            {team.mentor?.currentPreference === -1 &&
-              !team.mentor?.assigned && (
-                <p className="text-red-500">
-                  All mentor preferences exhausted or none set.
-                </p>
-              )}
             {team.evaluation && (
               <div className="mt-3">
                 <p className="font-semibold text-md">Evaluation Data:</p>
@@ -303,6 +318,12 @@ export default function ManageTeams() {
   const [error, setError] = useState(null);
   const [expandedTeamId, setExpandedTeamId] = useState(null);
   const [searchTerm, setSearchTerm] = useState(""); // Added for search
+
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [mentorFilter, setMentorFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
 
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [selectedTeamForAction, setSelectedTeamForAction] = useState(null);
@@ -345,10 +366,21 @@ export default function ManageTeams() {
     }
   }, [actionType]);
 
-  // Filtered teams based on search term
-  const filteredTeams = teams.filter((team) => {
+  // Get unique departments for filter dropdown
+  const departments = [
+    ...new Set(
+      teams
+        .map((team) => team.department || team.leader?.studentData?.department)
+        .filter(Boolean)
+    ),
+  ];
+
+  // Filtered teams based on search term and filters
+  const displayTeams = teams.filter((team) => {
+    // Search filter
     const searchTermLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch =
+      !searchTerm ||
       team.code.toLowerCase().includes(searchTermLower) ||
       (team.leader?.name &&
         team.leader.name.toLowerCase().includes(searchTermLower)) ||
@@ -360,7 +392,52 @@ export default function ManageTeams() {
         p.title.toLowerCase().includes(searchTermLower)
       ) ||
       (team.finalProject?.title &&
-        team.finalProject.title.toLowerCase().includes(searchTermLower))
+        team.finalProject.title.toLowerCase().includes(searchTermLower));
+
+    // Status filter
+    const matchesStatus =
+      statusFilter === "all" || team.status === statusFilter;
+
+    // Mentor filter
+    let matchesMentor = true;
+    if (mentorFilter === "assigned") {
+      matchesMentor = !!team.mentor?.assigned;
+    } else if (mentorFilter === "not-assigned") {
+      matchesMentor = !team.mentor?.assigned;
+    } else if (mentorFilter === "needs-allocation") {
+      matchesMentor =
+        !team.mentor?.assigned && team.mentor?.currentPreference === -1;
+    } else if (mentorFilter === "in-progress") {
+      matchesMentor =
+        !team.mentor?.assigned && team.mentor?.currentPreference !== -1;
+    }
+
+    // Project filter
+    let matchesProject = true;
+    if (projectFilter === "allocated") {
+      matchesProject = !!team.finalProject;
+    } else if (projectFilter === "not-allocated") {
+      matchesProject = !team.finalProject;
+    } else if (projectFilter === "has-choices") {
+      matchesProject = !team.finalProject && team.projectChoices?.length > 0;
+    } else if (projectFilter === "no-choices") {
+      matchesProject =
+        !team.finalProject &&
+        (!team.projectChoices || team.projectChoices.length === 0);
+    }
+
+    // Department filter
+    const teamDepartment =
+      team.department || team.leader?.studentData?.department;
+    const matchesDepartment =
+      departmentFilter === "all" || teamDepartment === departmentFilter;
+
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesMentor &&
+      matchesProject &&
+      matchesDepartment
     );
   });
 
@@ -462,50 +539,155 @@ export default function ManageTeams() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
-        <FaInfoCircle className="text-4xl text-red-500 mb-4" />
-        <p className="text-lg text-red-600 text-center">{error}</p>
-        <button
-          onClick={fetchTeams}
-          className="mt-6 bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded shadow transition-colors"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-sky-100 py-8 px-4 sm:px-6 lg:px-8">
-      <header className="text-center mb-10">
-        <h1 className="text-4xl font-bold text-gray-800">Manage Teams</h1>
-        <p className="mt-3 text-lg text-gray-600">
-          View, approve, reject, and allocate mentors to teams.
-        </p>
-      </header>
+    <div className="container mx-auto p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen">
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">Manage Teams</h1>
 
-      <div className="max-w-4xl mx-auto mb-8">
-        <input
-          type="text"
-          placeholder="Search teams by code, leader name/roll, project title..."
-          className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow bg-white"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      {/* Error banner if there's an error fetching teams */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center">
+          <FaInfoCircle className="mr-2" />
+          <span className="flex-grow">{error}</span>
+          <button
+            onClick={fetchTeams}
+            className="ml-4 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Search and Filter Controls */}
+      <div className="mb-6 space-y-4">
+        {/* Search Bar */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <input
+            type="text"
+            placeholder="Search teams by code, leader, project..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-grow p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+          />
+          <div className="text-sm text-gray-600 whitespace-nowrap">
+            {displayTeams.length} team{displayTeams.length !== 1 ? "s" : ""}{" "}
+            found
+          </div>
+        </div>
+
+        {/* Filter Options */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Status Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+
+          {/* Mentor Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Mentor Status
+            </label>
+            <select
+              value={mentorFilter}
+              onChange={(e) => setMentorFilter(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
+            >
+              <option value="all">All Mentors</option>
+              <option value="assigned">Assigned</option>
+              <option value="not-assigned">Not Assigned</option>
+              <option value="needs-allocation">Needs Allocation</option>
+              <option value="in-progress">In Progress</option>
+            </select>
+          </div>
+
+          {/* Project Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Project Status
+            </label>
+            <select
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
+            >
+              <option value="all">All Projects</option>
+              <option value="allocated">Allocated</option>
+              <option value="not-allocated">Not Allocated</option>
+              <option value="has-choices">Has Choices</option>
+              <option value="no-choices">No Choices</option>
+            </select>
+          </div>
+
+          {/* Department Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Department
+            </label>
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
+            >
+              <option value="all">All Departments</option>
+              {departments.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Clear Filters Button */}
+        {(searchTerm ||
+          statusFilter !== "all" ||
+          mentorFilter !== "all" ||
+          projectFilter !== "all" ||
+          departmentFilter !== "all") && (
+          <div className="flex justify-end">
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                setStatusFilter("all");
+                setMentorFilter("all");
+                setProjectFilter("all");
+                setDepartmentFilter("all");
+              }}
+              className="px-4 py-2 text-sm bg-gray-500 hover:bg-gray-600 text-white rounded-md transition-colors"
+            >
+              Clear All Filters
+            </button>
+          </div>
+        )}
       </div>
 
-      {filteredTeams.length === 0 && !loading ? (
-        <div className="text-center text-gray-500">
-          <FaUsers className="text-5xl mx-auto mb-4" />
-          <p className="text-xl">
-            {searchTerm ? "No teams match your search." : "No teams found."}
-          </p>
+      {actionMessage && (
+        <div
+          className={`p-4 mb-4 rounded-lg text-sm ${
+            actionMessage.includes("Failed") ||
+            actionMessage.includes("required")
+              ? "bg-red-100 text-red-700"
+              : "bg-green-100 text-green-700"
+          }`}
+        >
+          {actionMessage}
         </div>
-      ) : (
-        <div className="space-y-6 max-w-4xl mx-auto">
-          {filteredTeams.map((team) => (
+      )}
+
+      {displayTeams.length > 0 ? (
+        <div className="space-y-6">
+          {displayTeams.map((team) => (
             <TeamCard
               key={team._id}
               team={team}
@@ -515,9 +697,15 @@ export default function ManageTeams() {
             />
           ))}
         </div>
+      ) : (
+        <div className="text-center py-10">
+          <FaInfoCircle className="mx-auto text-4xl text-gray-400 mb-4" />
+          <p className="text-lg text-gray-600">
+            No teams found matching your criteria.
+          </p>
+        </div>
       )}
 
-      {/* Action Modals */}
       <Modal
         isOpen={isActionModalOpen && actionType === "approveReject"}
         onClose={handleCloseActionModal}

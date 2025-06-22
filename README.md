@@ -1,6 +1,6 @@
-# Project Allocation Process and Evaluation
+# PAMS - Project Allocation and Management System
 
-This project is a web application designed to manage and streamline the process of allocating projects to students and subsequently evaluating them. It caters to different user roles: Admin, Sub-Admin, Mentor, and Student.
+This project is a web application designed to manage and streamline the process of allocating projects to students and subsequently managing them. It caters to different user roles: Admin, Sub-Admin, Mentor, and Student.
 
 ## Overview
 
@@ -27,23 +27,23 @@ This repository is structured as a monorepo containing two main parts:
 
 1. **Clone the repository:**
 
-    ```bash
-    git clone <repository-url>
-    cd project-allocation-process-and-evaluation
-    ```
+   ```bash
+   git clone <repository-url>
+   cd project-allocation-process-and-evaluation
+   ```
 
 2. **Set up the Backend:**
 
-    - Navigate to the `backend` directory: `cd backend`
-    - Follow the instructions in `backend/README.md` to install dependencies, set up environment variables (including database connection and email service), and start the backend server.
+   - Navigate to the `backend` directory: `cd backend`
+   - Follow the instructions in `backend/README.md` to install dependencies, set up environment variables (including database connection and email service), and start the backend server.
 
 3. **Set up the Frontend:**
 
-    - Navigate to the `frontend` directory: `cd ../frontend` (if you are in `backend`)
-    - Follow the instructions in `frontend/README.md` to install dependencies, set up environment variables (pointing to the backend API), and start the frontend development server.
+   - Navigate to the `frontend` directory: `cd ../frontend` (if you are in `backend`)
+   - Follow the instructions in `frontend/README.md` to install dependencies, set up environment variables (pointing to the backend API), and start the frontend development server.
 
 4. **Access the Application:**
-    - Once both frontend and backend servers are running, you can typically access the application at `http://localhost:5173` (or the port Vite is running on).
+   - Once both frontend and backend servers are running, you can typically access the application at `http://localhost:5173` (or the port Vite is running on).
 
 ## Technologies Used
 

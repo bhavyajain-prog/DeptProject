@@ -261,7 +261,7 @@ teamSchema.pre("save", function (next) {
 });
 
 teamSchema.virtual("teamSize").get(function () {
-  return this.members.length + 1; 
+  return this.members.length + 1;
 });
 
 teamSchema.virtual("allMembers").get(function () {
