@@ -99,8 +99,6 @@ router.post(
     };
 
     if (user.firstLogin) {
-      user.firstLogin = false;
-      await user.save();
       return res
         .status(200)
         .cookie("token", token, cookieOptions)
@@ -159,9 +157,9 @@ router.post(
     const resetToken = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-    const resetLink = `${
-      process.env.CLIENT_URL || "http://localhost:5173"
-    }/reset-password/${resetToken}`;
+    const clientURL =
+      req.headers.origin || process.env.CLIENT_URL || "http://localhost:5173";
+    const resetLink = `${clientURL}/reset-password/${resetToken}`;
 
     const mailOptions = {
       from: `<${process.env.EMAIL_USER}>`,

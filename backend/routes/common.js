@@ -13,7 +13,7 @@ router.get(
   asyncHandler(async (_, res) => {
     const projects = await Project.find({ isApproved: true, isActive: false })
       .select(
-        "_id title description category proposedBy approvedBy assignedTeams maxTeams tags createdAt"
+        "_id title description category proposedBy approvedBy assignedTeams maxTeams createdAt"
       )
       .populate("proposedBy", "name email")
       .populate("approvedBy", "name email")
@@ -197,7 +197,7 @@ router.post(
 router.post(
   "/propose-project",
   authenticate,
-  authorizeRoles("student"),
+  authorizeRoles("student", "mentor"),
   asyncHandler(async (req, res) => {
     let { title, description, category } = req.body;
     if (!title || !description || !category) {
@@ -407,7 +407,7 @@ router.post(
 router.get(
   "/my-proposed-projects",
   authenticate,
-  authorizeRoles("student"),
+  authorizeRoles("student", "mentor"),
   asyncHandler(async (req, res) => {
     const projects = await Project.find({ proposedBy: req.user._id })
       .select(
