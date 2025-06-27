@@ -229,6 +229,33 @@ router.post(
       });
     }
     await project.save();
+    if (project.proposedBy) {
+      const proposer = await User.findById(project.proposedBy).select("email name");
+      if (proposer && proposer.email) {
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+        });
+
+        const mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: proposer.email,
+          subject: `Project Approved: ${project.title}`,
+          text: `Dear ${proposer.name || "User"},\n\nYour project "${
+            project.title
+          }" has been approved by the admin team.\n\nBest regards,\nAdmin Team`,
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+          if (error) {
+            console.error("Error sending approval email:", error);
+          }
+        });
+      }
+    }
     res.status(200).json({ message: "Project approved successfully." });
   })
 );
@@ -264,6 +291,33 @@ router.post(
       at: new Date(),
     });
     await project.save();
+    if (project.proposedBy) {
+      const proposer = await User.findById(project.proposedBy).select("email name");
+      if (proposer && proposer.email) {
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+        });
+
+        const mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: proposer.email,
+          subject: `Project Approved: ${project.title}`,
+          text: `Dear ${proposer.name || "User"},\n\nYour project "${
+            project.title
+          }" has been rejected by the admin team.\n\nBest regards,\nAdmin Team`,
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+          if (error) {
+            console.error("Error sending approval email:", error);
+          }
+        });
+      }
+    }
     res.status(200).json({ message: "Project marked as rejected." });
   })
 );

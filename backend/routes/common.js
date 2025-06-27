@@ -1472,4 +1472,45 @@ router.get(
   })
 );
 
+router.put(
+  "/update-proposed-project/:id",
+  authenticate,
+  authorizeRoles("student", "mentor"),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { title, description, category } = req.body;
+    if (!title || !description || !category) {
+      return res.status(400).json({
+        message: "Title, description, and category are required.",
+      });
+    }
+    const project = await Project.findById(id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found." });
+    }
+    if (project.proposedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        message: "You can only update projects that you have proposed.",
+      });
+    }
+    project.title = title;
+    project.description = description;
+    project.category = category;
+    await project.save();
+    res.status(200).json({
+      message: "Project updated successfully.",
+      project: {
+        _id: project._id,
+        title: project.title,
+        description: project.description,
+        category: project.category,
+        isApproved: project.isApproved,
+        createdAt: project.createdAt,
+        approvedBy: project.approvedBy,
+        feedback: project.feedback,
+      },
+    });
+  })
+);
+
 module.exports = router;
