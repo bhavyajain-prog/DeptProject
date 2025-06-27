@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.jpg";
 import { useAuth } from "../contexts/AuthContext";
@@ -9,19 +9,25 @@ const Header = () => {
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
+      setScrolled(window.scrollY > 10);
+    };
+
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
       }
     };
 
     window.addEventListener("scroll", handleScroll);
+    document.addEventListener("mousedown", handleClickOutside);
+
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -45,6 +51,7 @@ const Header = () => {
   const isMinimalOnlyLogo = ["/login", "/notfound"].includes(path);
   const isResetFlow =
     path === "/forgot-password" || path.startsWith("/reset-password");
+  const isHomePage = ["/admin/home", "/mentor/home", "/home"].includes(path);
 
   return (
     <header
@@ -74,38 +81,32 @@ const Header = () => {
         ) : (
           <>
             {/* Left - Back button */}
-            <div className="absolute top-1/2 left-0 transform -translate-y-1/2">
-              <button
-                onClick={() => {
-                  isResetFlow
-                    ? navigate("/login")
-                    : navigate(getDashboardRoute());
-                }}
-                className="bg-teal-50 hover:bg-teal-100 text-teal-600 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="w-5 h-5"
+            {!isHomePage && (
+              <div className="absolute top-1/2 left-0 transform -translate-y-1/2">
+                <button
+                  onClick={() => {
+                    isResetFlow
+                      ? navigate("/login")
+                      : navigate(getDashboardRoute());
+                  }}
+                  className="bg-teal-50 hover:bg-teal-100 text-teal-600 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2"
                 >
-                  {isResetFlow ? (
-                    <path
-                      fillRule="evenodd"
-                      d="M9.293 2.293a1 1 0 011.414 0l7 7A1 1 0 0117 11h-3.586l-4.707 4.707a1 1 0 01-1.414-1.414L11.586 10H5a1 1 0 110-2h6.586l-4.293-4.293a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="w-5 h-5"
+                  >
                     <path
                       fillRule="evenodd"
                       d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L4.414 9H17a1 1 0 110 2H4.414l5.293 5.293a1 1 0 010 1.414z"
                       clipRule="evenodd"
                     />
-                  )}
-                </svg>
-                <span>{isResetFlow ? "Back to Login" : "Home"}</span>
-              </button>
-            </div>
+                  </svg>
+                  <span>{isResetFlow ? "Back to Login" : "Home"}</span>
+                </button>
+              </div>
+            )}
 
             {/* Center - Logo */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
@@ -128,7 +129,7 @@ const Header = () => {
             {/* Right - Profile and Logout */}
             <div className="absolute top-1/2 right-0 transform -translate-y-1/2">
               {user && !isResetFlow && (
-                <div className="relative">
+                <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setShowDropdown(!showDropdown)}
                     className="flex items-center space-x-2 bg-white border border-gray-200 hover:border-teal-300 rounded-full py-2 px-4 shadow-sm hover:shadow transition-all duration-200"
@@ -145,7 +146,12 @@ const Header = () => {
                       viewBox="0 0 24 24"
                       strokeWidth={1.5}
                       stroke="currentColor"
-                      className="w-4 h-4 text-gray-500"
+                      className="w-4 h-4 text-gray-500 transition-transform duration-200"
+                      style={{
+                        transform: showDropdown
+                          ? "rotate(180deg)"
+                          : "rotate(0deg)",
+                      }}
                     >
                       <path
                         strokeLinecap="round"
@@ -171,14 +177,8 @@ const Header = () => {
                       </div>
                       <div className="px-2 py-1">
                         <button
-                          onClick={() => navigate("/profile")}
-                          className="block w-full text-left px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
-                        >
-                          Profile Settings
-                        </button>
-                        <button
                           onClick={handleLogout}
-                          className="block w-full text-left px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded"
+                          className="block w-full text-left px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded font-medium"
                         >
                           Sign out
                         </button>
