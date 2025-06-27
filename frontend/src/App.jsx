@@ -29,6 +29,7 @@ import AdminUpload from "./features/admin/components/AdminUpload";
 import ManageTeams from "./features/admin/components/ManageTeams";
 import ManageMentors from "./features/admin/components/ManageMentors";
 import ManageStudents from "./features/admin/components/ManageStudents";
+import ManageProjects from "./features/admin/components/ManageProjects";
 
 import Home from "./pages/DevPortal";
 
@@ -95,6 +96,14 @@ export default function App() {
                 element={
                   <RoleBasedRoute roles={["admin"]}>
                     <ManageStudents />
+                  </RoleBasedRoute>
+                }
+              />
+              <Route
+                path="/admin/manage/projects"
+                element={
+                  <RoleBasedRoute roles={["admin"]}>
+                    <ManageProjects />
                   </RoleBasedRoute>
                 }
               />
