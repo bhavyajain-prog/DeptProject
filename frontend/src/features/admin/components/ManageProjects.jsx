@@ -338,12 +338,12 @@ export default function ManageProjects() {
           successMessage = "Project deleted successfully.";
           break;
         case "approve":
-          endpoint = `/admin/approve-projects/${selectedProject._id}`;
+          endpoint = `/admin/approve-project/${selectedProject._id}`;
           await axios.post(endpoint, { feedback: formData.feedback });
           successMessage = "Project approved successfully.";
           break;
         case "reject":
-          endpoint = `/admin/reject-projects/${selectedProject._id}`;
+          endpoint = `/admin/reject-project/${selectedProject._id}`;
           if (!formData.feedback) {
             setActionMessage("Feedback is required for rejection.");
             setActionLoading(false);

@@ -21,6 +21,7 @@ import StudentPortal from "./features/student/components/StudentPortal";
 import CreateTeam from "./features/student/components/CreateTeam";
 import MyTeam from "./features/student/components/MyTeam";
 import JoinTeam from "./features/student/components/JoinTeam";
+import ProposeProject from "./features/student/components/ProposeProject";
 
 import MentorPortal from "./features/mentor/components/MentorPortal";
 
@@ -138,6 +139,14 @@ export default function App() {
                 element={
                   <RoleBasedRoute roles={["student"]}>
                     <MyTeam />
+                  </RoleBasedRoute>
+                }
+              />
+              <Route
+                path="/project-bank"
+                element={
+                  <RoleBasedRoute roles={["student"]}>
+                    <ProposeProject />
                   </RoleBasedRoute>
                 }
               />

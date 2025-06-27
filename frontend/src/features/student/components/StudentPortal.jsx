@@ -11,6 +11,15 @@ import {
 } from "react-icons/fa";
 import { useAuth } from "../../../contexts/AuthContext";
 
+const toTitleCase = (str) => {
+  if (!str) return "";
+  return str
+    .toLowerCase()
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.substring(1))
+    .join(" ");
+};
+
 // Reusable Action Card with description
 function StudentActionCard({ to, title, description, icon, disabled = false }) {
   const content = (
@@ -69,7 +78,7 @@ export default function StudentPortal() {
           <p className="mt-4 text-xl text-gray-600 max-w-3xl mx-auto">
             Welcome,{" "}
             <span className="font-semibold text-teal-600">
-              {user?.name || "Student"}
+              {toTitleCase(user?.name).split(" ")[0] || "Student"}
             </span>
             ! Here's your command center for project success.
           </p>
@@ -116,7 +125,7 @@ export default function StudentPortal() {
             <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-16">
               <div className="md:col-start-2">
                 <StudentActionCard
-                  to="/propose-project"
+                  to="/project-bank"
                   title="Propose a New Project"
                   description="Have a brilliant idea? Submit a project proposal for consideration."
                   icon={<FaLightbulb />}
@@ -150,7 +159,7 @@ export default function StudentPortal() {
                 icon={<FaPlus />}
               />
               <StudentActionCard
-                to="/propose-project"
+                to="/project-bank"
                 title="Propose a Project"
                 description="Got an innovative idea? Submit a project proposal for everyone to see."
                 icon={<FaLightbulb />}
