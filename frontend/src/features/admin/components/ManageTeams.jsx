@@ -543,20 +543,6 @@ export default function ManageTeams() {
     <div className="container mx-auto p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Manage Teams</h1>
 
-      {/* Error banner if there's an error fetching teams */}
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center">
-          <FaInfoCircle className="mr-2" />
-          <span className="flex-grow">{error}</span>
-          <button
-            onClick={fetchTeams}
-            className="ml-4 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
       {/* Search and Filter Controls */}
       <div className="mb-6 space-y-4">
         {/* Search Bar */}

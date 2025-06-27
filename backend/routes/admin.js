@@ -95,15 +95,18 @@ router.get(
 router.get(
   "/projects",
   authenticate,
-  authorizeRoles("admin"),
+  authorizeRoles("admin", "sub-admin"),
   asyncHandler(async (req, res) => {
     const projects = await Project.find()
-      .populate("approvedBy", "name email")
-      .populate("proposedBy", "name email")
-      .sort({ createdAt: -1 });
-
-    if (!projects) {
-      return res.status(404).json({ message: "No projects found." });
+      .select(
+        "_id title description category maxTeams assignedTeams isApproved proposedBy approvedBy feedback isActive"
+      )
+      .populate("proposedBy", "name email role")
+      .populate("approvedBy", "name email role")
+      .populate("assignedTeams", "code leader members")
+      .lean();
+    if (!projects || projects.length === 0) {
+      return res.status(404).json({ message: "No projects found" });
     }
     res.status(200).json({ projects });
   })
@@ -212,7 +215,7 @@ router.post(
     project.isApproved = true;
     project.approvedBy = req.user._id;
 
-    if (feedback) {
+    if (feedback && !feedback!=="") {
       project.feedback.push({
         message: feedback,
         byUser: req.user._id,
@@ -248,6 +251,10 @@ router.post(
         message:
           "Cannot reject an already approved project. Consider unapproving or deleting.",
       });
+    }
+
+    if(!feedback || feedback === "") {
+      return res.status(400).json({ message: "Feedback is required for rejection." });
     }
 
     project.isApproved = false;
@@ -901,48 +908,6 @@ router.delete(
     await User.deleteMany({ role: { $nin: ["dev", "admin"] } });
     await insertUsers();
     res.status(200).json({ message: "All collections deleted successfully." });
-  })
-);
-
-router.get(
-  "/teams",
-  authenticate,
-  authorizeRoles("admin", "mentor"),
-  asyncHandler(async (req, res) => {
-    try {
-      const teams = await Team.find({})
-        .populate("leader", "name email studentData")
-        .populate("members.student", "name email studentData")
-        .populate("mentor.assigned", "name email")
-        .populate("finalProject", "title description")
-        .lean();
-
-      const teamsWithFormData = teams.map((team) => ({
-        _id: team._id,
-        code: team.code,
-        batch: team.batch,
-        department: team.department,
-        status: team.status,
-        leader: team.leader,
-        members: team.members,
-        mentor: team.mentor,
-        finalProject: team.finalProject,
-        projectAbstract: team.projectAbstract,
-        roleSpecification: team.roleSpecification,
-        evaluation: team.evaluation,
-      }));
-
-      res.status(200).json({
-        success: true,
-        teams: teamsWithFormData,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "Failed to fetch teams",
-        error: error.message,
-      });
-    }
   })
 );
 
