@@ -9,6 +9,7 @@ import {
   FaInfoCircle,
   FaCheckCircle,
   FaTimesCircle,
+  FaEdit, // Import FaEdit
 } from "react-icons/fa";
 
 // Reusable Modal Component
@@ -48,7 +49,7 @@ const ProjectBankCard = ({ project }) => (
 );
 
 // Card for displaying user's own proposals
-const MyProposalCard = ({ project, onWithdraw }) => {
+const MyProposalCard = ({ project, onWithdraw, onEdit }) => {
   const getStatusInfo = () => {
     if (project.isApproved) {
       return {
@@ -113,10 +114,17 @@ const MyProposalCard = ({ project, onWithdraw }) => {
       )}
 
       {!project.isApproved && (
-        <div className="text-right mt-4">
+        <div className="text-right mt-4 flex justify-end items-center space-x-2">
+          <button
+            onClick={() => onEdit(project)}
+            className="text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-1 px-3 rounded-md flex items-center"
+          >
+            <FaEdit className="mr-2" />
+            Edit
+          </button>
           <button
             onClick={() => onWithdraw(project._id)}
-            className="text-sm bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-1 px-3 rounded-md flex items-center ml-auto"
+            className="text-sm bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-1 px-3 rounded-md flex items-center"
           >
             <FaTrash className="mr-2" />
             Withdraw
@@ -135,6 +143,7 @@ export default function ProposeProject() {
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [editingProject, setEditingProject] = useState(null); // To hold project being edited
 
   // Form state
   const [formData, setFormData] = useState({
@@ -171,25 +180,36 @@ export default function ProposeProject() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleProposeSubmit = async (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     setActionLoading(true);
     setActionMessage({ type: "", text: "" });
+
+    const url = editingProject
+      ? `/common/update-proposed-project/${editingProject._id}`
+      : "/common/propose-project";
+    const method = editingProject ? "put" : "post";
+    const successMessage = editingProject
+      ? "Project updated successfully!"
+      : "Project proposed successfully!";
+    const errorMessage = editingProject
+      ? "Failed to update project."
+      : "Failed to propose project.";
+
     try {
-      await axios.post("/common/propose-project", formData);
+      await axios[method](url, formData);
       setActionMessage({
         type: "success",
-        text: "Project proposed successfully!",
+        text: successMessage,
       });
       fetchData(); // Refresh data
       setTimeout(() => {
-        setIsModalOpen(false);
-        setFormData({ title: "", description: "", category: "" });
+        closeModalAndReset();
       }, 1500);
     } catch (err) {
       setActionMessage({
         type: "error",
-        text: err.response?.data?.message || "Failed to propose project.",
+        text: err.response?.data?.message || errorMessage,
       });
     } finally {
       setActionLoading(false);
@@ -206,6 +226,30 @@ export default function ProposeProject() {
         alert(err.response?.data?.message || "Failed to withdraw proposal.");
       }
     }
+  };
+
+  const handleEdit = (project) => {
+    setEditingProject(project);
+    setFormData({
+      title: project.title,
+      description: project.description,
+      category: project.category,
+    });
+    setIsModalOpen(true);
+  };
+
+  const openModalForCreate = () => {
+    setEditingProject(null);
+    setFormData({ title: "", description: "", category: "" });
+    setActionMessage({ type: "", text: "" });
+    setIsModalOpen(true);
+  };
+
+  const closeModalAndReset = () => {
+    setIsModalOpen(false);
+    setEditingProject(null);
+    setFormData({ title: "", description: "", category: "" });
+    setActionMessage({ type: "", text: "" });
   };
 
   const filteredProjectBank = projectBank.filter(
@@ -246,7 +290,7 @@ export default function ProposeProject() {
             Project Bank
           </h1>
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={openModalForCreate}
             className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg flex items-center shadow-md hover:shadow-lg transition-transform transform hover:-translate-y-1"
           >
             <FaPlus className="mr-2" /> Propose New Project
@@ -308,6 +352,7 @@ export default function ProposeProject() {
                   key={p._id}
                   project={p}
                   onWithdraw={handleWithdraw}
+                  onEdit={handleEdit}
                 />
               ))
             ) : (
@@ -321,10 +366,10 @@ export default function ProposeProject() {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Propose a New Project"
+        onClose={closeModalAndReset}
+        title={editingProject ? "Edit Your Proposal" : "Propose a New Project"}
       >
-        <form onSubmit={handleProposeSubmit} className="space-y-4">
+        <form onSubmit={handleFormSubmit} className="space-y-4">
           <input
             name="title"
             value={formData.title}
@@ -365,7 +410,7 @@ export default function ProposeProject() {
           <div className="flex justify-end gap-2">
             <button
               type="button"
-              onClick={() => setIsModalOpen(false)}
+              onClick={closeModalAndReset}
               className="px-4 py-2 bg-gray-200 rounded"
             >
               Cancel
@@ -377,6 +422,8 @@ export default function ProposeProject() {
             >
               {actionLoading ? (
                 <FaSpinner className="animate-spin" />
+              ) : editingProject ? (
+                "Update Proposal"
               ) : (
                 "Submit Proposal"
               )}

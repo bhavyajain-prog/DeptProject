@@ -1,5 +1,5 @@
 // TODO: Validate manual allocation and visual of evaluation data
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "../../../services/axios";
 import {
   FaChevronDown,
@@ -13,7 +13,6 @@ import {
   FaPlusCircle,
   FaPaperPlane,
   FaInfoCircle,
-  FaEdit,
 } from "react-icons/fa";
 
 // Placeholder for a more sophisticated Modal component if needed later

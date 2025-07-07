@@ -8,6 +8,7 @@ import {
   FaTachometerAlt,
   FaFileUpload,
   FaSpinner,
+  FaBook,
 } from "react-icons/fa";
 import { useAuth } from "../../../contexts/AuthContext";
 
@@ -66,7 +67,7 @@ export default function StudentPortal() {
 
   const isInTeam = !!user?.studentData?.currentTeam;
   const isTeamLeader =
-    user?._id === user?.studentData?.currentTeam?.leader?._id;
+    String(user?._id) === String(user?.studentData?.currentTeam?.leader?._id);
 
   return (
     <div className="bg-gradient-to-br from-slate-50 to-sky-100 min-h-screen py-16 px-4 sm:px-6 lg:px-8">
@@ -87,13 +88,15 @@ export default function StudentPortal() {
         {isInTeam ? (
           // VIEW FOR STUDENTS IN A TEAM
           <div>
-            <div className="text-center mb-12 p-6 bg-teal-600/10 rounded-xl shadow-inner border border-teal-200/50">
-              <h2 className="text-xl font-semibold text-teal-800">
-                Your Team Code
-              </h2>
-              <p className="text-5xl font-mono font-bold text-teal-600 mt-2 tracking-widest bg-white/50 rounded-lg py-2 px-4 inline-block shadow-sm">
-                {user.studentData.currentTeam.teamCode}
-              </p>
+            <div className="flex justify-center mb-8">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 rounded-md border border-teal-200 shadow-sm">
+                <span className="text-sm text-teal-700 font-medium">
+                  Team Code:
+                </span>
+                <span className="font-mono font-bold text-teal-600 bg-white px-1.5 py-0.5 rounded text-sm">
+                  {user.studentData?.currentTeam?.code}
+                </span>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               <StudentActionCard
@@ -126,9 +129,9 @@ export default function StudentPortal() {
               <div className="md:col-start-2">
                 <StudentActionCard
                   to="/project-bank"
-                  title="Propose a New Project"
-                  description="Have a brilliant idea? Submit a project proposal for consideration."
-                  icon={<FaLightbulb />}
+                  title="Project Bank"
+                  description="Browse the project bank, see your proposals, or propose a new idea."
+                  icon={<FaBook />}
                 />
               </div>
             </div>
@@ -160,9 +163,9 @@ export default function StudentPortal() {
               />
               <StudentActionCard
                 to="/project-bank"
-                title="Propose a Project"
-                description="Got an innovative idea? Submit a project proposal for everyone to see."
-                icon={<FaLightbulb />}
+                title="Project Bank"
+                description="Browse the project bank, see your proposals, or propose a new idea."
+                icon={<FaBook />}
               />
             </div>
           </div>
