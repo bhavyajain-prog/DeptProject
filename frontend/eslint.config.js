@@ -29,6 +29,13 @@ export default [
       ...react.configs['jsx-runtime'].rules,
       ...reactHooks.configs.recommended.rules,
       'react/jsx-no-target-blank': 'off',
+      'react/prop-types': 'off', // Disable PropTypes validation for modern React
+      'react/react-in-jsx-scope': 'off', // Not needed with new JSX transform
+      'react/jsx-uses-react': 'off', // Not needed with new JSX transform
+      'no-unused-vars': ['error', { 
+        varsIgnorePattern: '^React$',
+        argsIgnorePattern: '^_' 
+      }], // Ignore unused React imports
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import axios from "../../../services/axios";
 
 export default function ForgotPassword() {

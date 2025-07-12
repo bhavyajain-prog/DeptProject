@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "../../../services/axios";
 import {
   FaPlus,
@@ -104,7 +104,7 @@ const MyProposalCard = ({ project, onWithdraw, onEdit }) => {
           </h5>
           {project.feedback.map((fb, index) => (
             <div key={index} className="bg-gray-50 p-2 rounded-md text-xs mb-2">
-              <p className="italic">"{fb.message}"</p>
+              <p className="italic">&quot;{fb.message}&quot;</p>
               <p className="text-right text-gray-500 mt-1">
                 - {fb.byUser?.name || "Admin"}
               </p>
@@ -357,7 +357,7 @@ export default function ProposeProject() {
               ))
             ) : (
               <p className="text-gray-500 text-center py-10">
-                You haven't proposed any projects yet.
+                You haven&apos;t proposed any projects yet.
               </p>
             )}
           </div>
