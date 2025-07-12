@@ -1,5 +1,5 @@
 // filepath: /home/nerfex/Projects/DeptProject/project-allocation-process-and-evaluation/frontend/src/features/admin/components/ManageStudents.jsx
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axiosInstance from "../../../services/axios";
 import {
   FaUserGraduate,

@@ -3,7 +3,6 @@ import {
   FaUsers,
   FaPlus,
   FaSignInAlt,
-  FaLightbulb,
   FaClipboardList,
   FaTachometerAlt,
   FaFileUpload,
@@ -81,7 +80,7 @@ export default function StudentPortal() {
             <span className="font-semibold text-teal-600">
               {toTitleCase(user?.name).split(" ")[0] || "Student"}
             </span>
-            ! Here's your command center for project success.
+            ! Here&apos;s your command center for project success.
           </p>
         </header>
 
@@ -141,10 +140,10 @@ export default function StudentPortal() {
           <div>
             <div className="text-center mb-12 p-6 bg-white rounded-xl shadow-md">
               <h2 className="text-2xl font-bold text-gray-800">
-                Let's Get You Started!
+                Let&apos;s Get You Started!
               </h2>
               <p className="mt-2 text-gray-600">
-                You're not part of a team yet. Join an existing team or create a
+                You&apos;re not part of a team yet. Join an existing team or create a
                 new one to begin your project journey.
               </p>
             </div>

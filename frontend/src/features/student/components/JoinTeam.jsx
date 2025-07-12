@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import axios from "../../../services/axios";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +10,7 @@ export default function JoinTeam() {
 
   const joinTeam = async () => {
     try {
-      const res = await axios.post(
+      await axios.post(
         "/team/join",
         { code, user },
         { withCredentials: true }

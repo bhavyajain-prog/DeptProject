@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react"; // Added useRef
+import { useState, useRef } from "react"; // Added useRef
 import axios from "../../../services/axios";
 import { FaUpload, FaSpinner } from "react-icons/fa"; // Added FaSpinner
 
@@ -45,7 +45,7 @@ export default function AdminUpload() {
   const mentorFileRef = useRef(null);
   const projectFileRef = useRef(null);
 
-  const handleFileChange = (setter, type) => (event) => {
+  const handleFileChange = (setter) => (event) => {
     const file = event.target.files[0];
     if (file) {
       setter(file);
@@ -104,7 +104,6 @@ export default function AdminUpload() {
   };
   const UploadSection = ({
     title,
-    file,
     onFileChange,
     onUpload,
     fileType,

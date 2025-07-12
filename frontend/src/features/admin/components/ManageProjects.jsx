@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "../../../services/axios";
 import {
   FaPlus,
@@ -9,8 +9,6 @@ import {
   FaSpinner,
   FaInfoCircle,
   FaCalendarAlt,
-  FaFilter,
-  FaSearch,
   FaChevronDown,
   FaChevronUp,
   FaUserShield,
@@ -172,7 +170,7 @@ const ProjectCard = ({ project, onAction }) => {
                     key={index}
                     className="p-2 border-l-2 border-gray-200 bg-gray-50 rounded-r-md"
                   >
-                    <p>"{fb.message}"</p>
+                    <p>&quot;{fb.message}&quot;</p>
                     <p className="text-xs text-gray-500 mt-1">
                       - {fb.byUser?.name || "System"} on{" "}
                       {new Date(fb.at).toLocaleDateString()}
@@ -451,8 +449,8 @@ export default function ManageProjects() {
         return (
           <div>
             <p>
-              Are you sure you want to delete the project "
-              {selectedProject?.title}"?
+              Are you sure you want to delete the project &quot;
+              {selectedProject?.title}&quot;?
             </p>
             {actionMessage && (
               <p className="text-sm text-red-600 mt-2">{actionMessage}</p>
@@ -483,8 +481,8 @@ export default function ManageProjects() {
         return (
           <div>
             <p>
-              Are you sure you want to {modalType} the project "
-              {selectedProject?.title}"?
+              Are you sure you want to {modalType} the project &quot;
+              {selectedProject?.title}&quot;?
             </p>
             <textarea
               name="feedback"
@@ -523,7 +521,7 @@ export default function ManageProjects() {
       case "schedule":
         return (
           <div>
-            <p>Schedule discussion for "{selectedProject?.title}"</p>
+            <p>Schedule discussion for &quot;{selectedProject?.title}&quot;</p>
             <div className="space-y-4 mt-4">
               <input
                 name="discussionDate"

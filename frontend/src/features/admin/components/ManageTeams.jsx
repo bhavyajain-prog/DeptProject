@@ -1,4 +1,3 @@
-// TODO: Validate manual allocation and visual of evaluation data
 import { useState, useEffect, useCallback } from "react";
 import axios from "../../../services/axios";
 import {
@@ -314,7 +313,6 @@ const TeamCard = ({ team, onToggleExpand, isExpanded, onOpenActionModal }) => {
 export default function ManageTeams() {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [expandedTeamId, setExpandedTeamId] = useState(null);
   const [searchTerm, setSearchTerm] = useState(""); // Added for search
 
@@ -335,12 +333,10 @@ export default function ManageTeams() {
 
   const fetchTeams = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const response = await axios.get("/admin/teams");
       setTeams(response.data.teams || []);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to fetch teams.");
       console.error("Fetch teams error:", err);
     } finally {
       setLoading(false);

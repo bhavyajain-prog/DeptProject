@@ -32,9 +32,6 @@ import ManageMentors from "./features/admin/components/ManageMentors";
 import ManageStudents from "./features/admin/components/ManageStudents";
 import ManageProjects from "./features/admin/components/ManageProjects";
 
-import Home from "./pages/DevPortal";
-
-
 export default function App() {
   return (
     <Router>
@@ -45,15 +42,6 @@ export default function App() {
             <Routes>
               {/* Redirect root to login */}
               <Route path="/" element={<Navigate to="/login" />} />
-              {/* Dev Portal: All Pages for UI/UX review */}
-              <Route
-                path="/dev"
-                element={
-                  <RoleBasedRoute roles={["dev"]}>
-                    <Home />
-                  </RoleBasedRoute>
-                }
-              />
               {/* Auth Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
