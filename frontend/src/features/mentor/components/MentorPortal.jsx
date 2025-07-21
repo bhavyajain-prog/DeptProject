@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import {
   FaUsers,
   FaTachometerAlt,
-  FaFileCheck,
+  FaClipboardCheck,
   FaSpinner,
   FaChartLine,
   FaComments,
@@ -95,7 +95,7 @@ export default function MentorPortal() {
             to="/mentor/document-approval"
             title="Document Review"
             description="Review and approve team submissions, project documents, and deliverables."
-            icon={<FaFileCheck />}
+            icon={<FaClipboardCheck />}
           />
           <MentorActionCard
             to="/mentor/progress-tracking"

@@ -173,7 +173,7 @@ export default function CreateTeam() {
             <p className="text-lg font-semibold text-gray-700">Your Team Code:</p>
             <div className="mt-2 flex items-center justify-center gap-2 bg-teal-50 p-4 rounded-lg border-2 border-dashed border-teal-200">
               <span className="text-3xl font-mono font-bold text-teal-600 tracking-widest">
-                {teamCreated.team.teamCode}
+                {teamCreated.team?.teamCode}
               </span>
               <button
                 onClick={copyToClipboard}
