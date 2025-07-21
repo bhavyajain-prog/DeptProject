@@ -472,8 +472,8 @@ export default function ManageTeams() {
     setActionMessage("");
     try {
       const endpoint = isApproved
-        ? `/admin/approve/${selectedTeamForAction.code}`
-        : `/admin/reject/${selectedTeamForAction.code}`;
+        ? `/admin/approve/${selectedTeamForAction.id}`
+        : `/admin/reject/${selectedTeamForAction.id}`;
       await axios.post(endpoint, { feedback: feedbackText });
       setActionMessage(
         `Team ${selectedTeamForAction.code} ${

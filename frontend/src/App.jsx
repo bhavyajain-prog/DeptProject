@@ -9,6 +9,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import NotFound from "./pages/NotFound";
+import DevPortal from "./pages/DevPortal";
 import RoleBasedRoute from "./routing/RoleBasedRoute";
 import "./App.css";
 
@@ -144,6 +145,15 @@ export default function App() {
                 element={
                   <RoleBasedRoute roles={["mentor"]}>
                     <MentorPortal />
+                  </RoleBasedRoute>
+                }
+              />
+              {/* Developer Routes */}
+              <Route
+                path="/dev"
+                element={
+                  <RoleBasedRoute roles={["dev"]}>
+                    <DevPortal />
                   </RoleBasedRoute>
                 }
               />

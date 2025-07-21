@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.jpg";
 import { useAuth } from "../contexts/AuthContext";
+import axios from "../services/axios";
 
 const toTitleCase = (str) => {
   if (!str) return "";
@@ -41,9 +42,15 @@ const Header = () => {
   }, []);
 
   const handleLogout = async () => {
-    setUser(null);
-    setShowDropdown(false);
-    navigate("/login");
+    try {
+      await axios.post("/auth/logout", {}, { withCredentials: true });
+    } catch (err) {
+      console.error("Logout failed (non-blocking):", err);
+    } finally {
+      setUser(null);
+      setShowDropdown(false);
+      navigate("/login");
+    }
   };
 
   const getDashboardRoute = () => {

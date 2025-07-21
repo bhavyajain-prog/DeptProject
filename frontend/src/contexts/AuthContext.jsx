@@ -27,25 +27,60 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const fetchUserData = async () => {
+    console.log(
+      "[AuthContext] Attempting to check authentication via /auth/me"
+    );
+    try {
+      const res = await axios.get("/auth/me", {
+        withCredentials: true,
+      });
+      console.log("[AuthContext] /auth/me response received:", res.data);
+
+      if (res.data.user) {
+        console.log(
+          "[AuthContext] User data found in response, setting user:",
+          res.data.user
+        );
+        console.log(
+          "[AuthContext] User data found in response, viewing studentData:",
+          res.data.user.studentData
+        );
+        setUser({...res.data.user});
+        return res.data.user;
+      } else {
+        console.log(
+          "[AuthContext] No user data in /auth/me response, but no error. User will be redirected by protected routes if necessary."
+        );
+        setUser(null);
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        "[AuthContext] Error during /auth/me call:",
+        error.response ? error.response.data : error.message
+      );
+      setUser(null);
+      return null;
+    }
+  };
+
+  const refreshUser = async () => {
+    setLoading(true);
+    try {
+      await fetchUserData();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const checkAuth = async () => {
-      console.log(
-        "[AuthContext] Attempting to check authentication via /auth/me"
-      );
       try {
-        const res = await axios.get("/auth/me", {
-          withCredentials: true,
-        });
-        console.log("[AuthContext] /auth/me response received:", res.data);
-
-        if (res.data.user) {
-          console.log(
-            "[AuthContext] User data found in response, setting user:",
-            res.data.user
-          );
-          setUser(res.data.user);
-
-          const targetPath = getTargetPathForRole(res.data.user.role);
+        const userData = await fetchUserData();
+        
+        if (userData) {
+          const targetPath = getTargetPathForRole(userData.role);
           const authPages = [
             "/login",
             "/register",
@@ -68,16 +103,7 @@ export function AuthProvider({ children }) {
               `[AuthContext] User authenticated. Current path: ${location.pathname}. No automatic redirect needed from AuthContext.`
             );
           }
-        } else {
-          console.log(
-            "[AuthContext] No user data in /auth/me response, but no error. User will be redirected by protected routes if necessary."
-          );
         }
-      } catch (error) {
-        console.error(
-          "[AuthContext] Error during /auth/me call:",
-          error.response ? error.response.data : error.message
-        );
       } finally {
         setLoading(false);
       }
@@ -87,7 +113,7 @@ export function AuthProvider({ children }) {
   }, []); // Run only once on mount
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading }}>
+    <AuthContext.Provider value={{ user, setUser, loading, refreshUser }}>
       {loading ? <Loading /> : children}
     </AuthContext.Provider>
   );

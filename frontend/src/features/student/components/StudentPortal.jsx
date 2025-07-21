@@ -10,6 +10,7 @@ import {
   FaBook,
 } from "react-icons/fa";
 import { useAuth } from "../../../contexts/AuthContext";
+import Loading from "../../../components/Loading";
 
 const toTitleCase = (str) => {
   if (!str) return "";
@@ -55,11 +56,16 @@ function StudentActionCard({ to, title, description, icon, disabled = false }) {
 export default function StudentPortal() {
   const { user, loading } = useAuth();
 
-  if (loading) {
+  if (loading || !user || (user.role === "student" && !user.studentData)) {
+    return <Loading />;
+  }
+
+  // For students, also check if studentData is fully loaded
+  if (user.role === "student" && !user.studentData) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-slate-50">
         <FaSpinner className="animate-spin text-4xl text-teal-600" />
-        <p className="ml-3 text-lg text-gray-700">Loading your portal...</p>
+        <p className="ml-3 text-lg text-gray-700">Loading student data...</p>
       </div>
     );
   }
@@ -143,8 +149,8 @@ export default function StudentPortal() {
                 Let&apos;s Get You Started!
               </h2>
               <p className="mt-2 text-gray-600">
-                You&apos;re not part of a team yet. Join an existing team or create a
-                new one to begin your project journey.
+                You&apos;re not part of a team yet. Join an existing team or
+                create a new one to begin your project journey.
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
