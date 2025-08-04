@@ -11,7 +11,34 @@ router.get(
   "/project-bank",
   authenticate,
   asyncHandler(async (_, res) => {
-    const projects = await Project.find();
+    const projects = await Project.find({
+      isApproved: true,
+      rejectedAt: null,
+    })
+      .populate("proposedBy", "-password")
+      .lean({ virtuals: true });
+
+    // Filter by virtual isAvailable (assignedTeams.length < maxTeams)
+    const availableProjects = projects.filter(
+      (project) => project.assignedTeams.length < project.maxTeams
+    );
+
+    // console.log("Fetched project bank:", availableProjects.length, availableProjects);
+
+    res.status(200).json(availableProjects);
+  })
+);
+
+router.get(
+  "/my-proposed-projects",
+  authenticate,
+  authorizeRoles("student"),
+  asyncHandler(async (req, res) => {
+    const projects = await Project.find({
+      proposedBy: req.user._id,
+    })
+      .populate("feedback.byUser", "name")
+      .sort({ createdAt: -1 });
     res.status(200).json(projects);
   })
 );
@@ -80,7 +107,7 @@ router.post(
     let code;
     let exists = true;
     while (exists) {
-      code = Math.random().toString(36).substr(2, 8).toUpperCase();
+      code = Math.random().toString(36).slice(2, 8).toUpperCase();
       exists = await Team.exists({ code });
     }
     const existingTeam = await Team.findOne({ code });
@@ -92,7 +119,6 @@ router.post(
     const newTeam = new Team({
       code,
       leader: req.user._id,
-      members,
       projectChoices,
       mentor: {
         preferences: mentorChoices,
@@ -100,7 +126,19 @@ router.post(
       batch: req.user.studentData.batch,
       department: req.user.studentData.department,
     });
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Set current team for the user
+    user.studentData.currentTeam = newTeam._id;
+
+    await user.save();
     await newTeam.save();
+    console.log(newTeam);
+    
     res
       .status(201)
       .json({ message: "Team created successfully.", team: newTeam });
@@ -138,8 +176,22 @@ router.post(
         message: "Your department does not match the team's department.",
       });
     }
+
+    // Get the actual user document from database
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Add user to team members
     team.members.push({ student: req.user._id });
+
+    // Update user's currentTeam
+    user.studentData.currentTeam = team._id;
+
     await team.save();
+    await user.save();
+
     res.status(200).json({ message: "You have joined the team successfully." });
   })
 );
@@ -190,12 +242,113 @@ router.post(
   })
 );
 
+router.put(
+  "/update-proposed-project/:id",
+  authenticate,
+  authorizeRoles("student"),
+  asyncHandler(async (req, res) => {
+    let { title, description, category } = req.body;
+    if (!title || !description || !category) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    title = title.trim();
+    description = description.trim();
+    category = category.trim();
+
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found." });
+    }
+
+    // Check if the project belongs to the current user
+    if (project.proposedBy.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ message: "You can only edit your own projects." });
+    }
+
+    // Check if project is already approved
+    if (project.isApproved) {
+      return res
+        .status(400)
+        .json({ message: "Cannot edit approved projects." });
+    }
+
+    // Check for duplicate title (excluding current project)
+    const existingProject = await Project.findOne({
+      title: { $regex: `^${title}$`, $options: "i" },
+      _id: { $ne: req.params.id },
+    });
+    if (existingProject) {
+      return res
+        .status(400)
+        .json({ message: "A project with this title already exists." });
+    }
+
+    try {
+      project.title = title;
+      project.description = description;
+      project.category = category;
+      await project.save();
+
+      res.status(200).json({
+        message: "Project updated successfully.",
+        project: {
+          _id: project._id,
+          title: project.title,
+          description: project.description,
+          category: project.category,
+        },
+      });
+    } catch (err) {
+      res.status(500).json({
+        message: "Failed to update project. Please try again later.",
+      });
+    }
+  })
+);
+
+router.post(
+  "/withdraw-project/:id",
+  authenticate,
+  authorizeRoles("student"),
+  asyncHandler(async (req, res) => {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found." });
+    }
+
+    // Check if the project belongs to the current user
+    if (project.proposedBy.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ message: "You can only withdraw your own projects." });
+    }
+
+    // Check if project is already approved
+    if (project.isApproved) {
+      return res
+        .status(400)
+        .json({ message: "Cannot withdraw approved projects." });
+    }
+
+    try {
+      await Project.findByIdAndDelete(req.params.id);
+      res.status(200).json({ message: "Project withdrawn successfully." });
+    } catch (err) {
+      res.status(500).json({
+        message: "Failed to withdraw project. Please try again later.",
+      });
+    }
+  })
+);
+
 router.post(
   "/leave-team",
   authenticate,
   authorizeRoles("student"),
   asyncHandler(async (req, res) => {
-    const { newLeaderId, dismissTeam } = req.body;
     const teamId = req.user.studentData.currentTeam;
     if (!teamId) {
       return res.status(400).json({ message: "You are not part of any team." });
@@ -204,46 +357,41 @@ router.post(
     if (!team) {
       return res.status(404).json({ message: "Team not found." });
     }
+
+    // Get the actual user document from database
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
     // If the user is the leader
     if (team.leader.toString() === req.user._id.toString()) {
-      if (dismissTeam) {
-        // Remove currentTeam from all members
-        await User.updateMany(
-          {
-            _id: { $in: [team.leader, ...team.members.map((m) => m.student)] },
-          },
-          { $set: { "studentData.currentTeam": null } }
-        );
+      // Update leader's studentData.currentTeam to null
+      user.studentData.currentTeam = null;
+      await user.save();
+
+      // If no members left, delete the whole team
+      if (team.members.length === 0) {
         await Team.deleteOne({ _id: teamId });
-        return res
-          .status(200)
-          .json({ message: "Team has been dismissed and deleted." });
-      } else if (newLeaderId) {
-        // Validate new leader is a member
-        const memberIndex = team.members.findIndex(
-          (m) => m.student.toString() === newLeaderId
-        );
-        if (memberIndex === -1) {
-          return res
-            .status(400)
-            .json({ message: "Selected new leader is not a team member." });
-        }
-        // Promote new leader
-        const newLeader = team.members.splice(memberIndex, 1)[0];
-        team.leader = newLeader.student;
-        await team.save();
-        // Remove old leader from team
-        req.user.studentData.currentTeam = null;
-        await req.user.save();
-        return res
-          .status(200)
-          .json({ message: "You have left the team. New leader assigned." });
-      } else {
-        return res.status(400).json({
-          message: "Please provide a new leader or choose to dismiss the team.",
+        return res.status(200).json({
+          message: "Team has been deleted as no members remain.",
         });
       }
+
+      // Set the leader to be the first element of the members array
+      const newLeader = team.members[0];
+      team.leader = newLeader.student;
+
+      // Remove the first element from members array
+      team.members.splice(0, 1);
+
+      await team.save();
+      return res.status(200).json({
+        message:
+          "You have left the team. Leadership transferred to the next member.",
+      });
     }
+
     // If the user is a member
     const memberIndex = team.members.findIndex(
       (member) => member.student.toString() === req.user._id.toString()
@@ -253,14 +401,16 @@ router.post(
         .status(400)
         .json({ message: "You are not a member of this team." });
     }
+
+    // Remove the member from the members array
     team.members.splice(memberIndex, 1);
-    if (team.members.length === 0) {
-      await Team.deleteOne({ _id: teamId });
-    } else {
-      await team.save();
-    }
-    req.user.studentData.currentTeam = null;
-    await req.user.save();
+
+    // Update the user's studentData.currentTeam to null
+    user.studentData.currentTeam = null;
+
+    await team.save();
+    await user.save();
+
     res.status(200).json({ message: "You have left the team." });
   })
 );
@@ -317,7 +467,7 @@ router.post(
     team.mentor.assigned = mentor._id;
     team.mentor.assignedAt = Date.now();
     team.finalProject = finalProject;
-    project.isActive = false; // Mark project as inactive
+    project.isAvailable = false; // Mark project as inactive
     project.assignedTeams.push(team._id);
     if (feedback) {
       team.feedback.push({ message: feedback, byUser: mentor._id });

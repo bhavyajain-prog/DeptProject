@@ -54,7 +54,9 @@ router.get(
   authenticate,
   authorizeRoles("admin", "sub-admin"),
   asyncHandler(async (req, res) => {
-    const teams = await Team.find()
+    const teams = await Team.find({
+      members: { $exists: true, $not: { $size: 0 } },
+    })
       .select(
         "_id code name leader members projectChoices mentor status feedback"
       )
@@ -99,7 +101,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const projects = await Project.find()
       .select(
-        "_id title description category maxTeams assignedTeams isApproved proposedBy approvedBy feedback isActive"
+        "_id title description category maxTeams assignedTeams isApproved proposedBy approvedBy feedback isAvailable rejectedAt"
       )
       .populate("proposedBy", "name email role")
       .populate("approvedBy", "name email role")
@@ -215,7 +217,7 @@ router.post(
     project.isApproved = true;
     project.approvedBy = req.user._id;
 
-    if (feedback && !feedback!=="") {
+    if (feedback && !feedback !== "") {
       project.feedback.push({
         message: feedback,
         byUser: req.user._id,
@@ -230,7 +232,9 @@ router.post(
     }
     await project.save();
     if (project.proposedBy) {
-      const proposer = await User.findById(project.proposedBy).select("email name");
+      const proposer = await User.findById(project.proposedBy).select(
+        "email name"
+      );
       if (proposer && proposer.email) {
         const transporter = nodemailer.createTransport({
           service: "gmail",
@@ -280,11 +284,14 @@ router.post(
       });
     }
 
-    if(!feedback || feedback === "") {
-      return res.status(400).json({ message: "Feedback is required for rejection." });
+    if (!feedback || feedback === "") {
+      return res
+        .status(400)
+        .json({ message: "Feedback is required for rejection." });
     }
 
     project.isApproved = false;
+    project.rejectedAt = new Date();
     project.feedback.push({
       message: feedback || "Project rejected",
       byUser: req.user._id,
@@ -292,7 +299,9 @@ router.post(
     });
     await project.save();
     if (project.proposedBy) {
-      const proposer = await User.findById(project.proposedBy).select("email name");
+      const proposer = await User.findById(project.proposedBy).select(
+        "email name"
+      );
       if (proposer && proposer.email) {
         const transporter = nodemailer.createTransport({
           service: "gmail",

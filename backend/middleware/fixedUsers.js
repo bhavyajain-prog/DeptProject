@@ -38,7 +38,7 @@ async function fixedUsers() {
           email: user.email,
           password: hashedPassword,
           role: user.role,
-          isActive: true,
+          isAvailable: true,
           lastLogin: new Date(),
         };
 

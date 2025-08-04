@@ -28,7 +28,7 @@ const projectBankSchema = new mongoose.Schema(
         at: { type: Date, default: Date.now },
       },
     ],
-    isActive: { type: Boolean, default: false }, 
+    rejectedAt: { type: Date, default: null },
   },
   {
     timestamps: true,
@@ -37,15 +37,21 @@ const projectBankSchema = new mongoose.Schema(
   }
 );
 
+// Indexes
 projectBankSchema.index({ category: 1 });
 projectBankSchema.index({ isApproved: 1 });
+projectBankSchema.index({rejectedAt: 1 },{expireAfterSeconds: 60 * 60 * 24 * 2});
 
+// ✅ Dynamic virtual
 projectBankSchema.virtual("isAvailable").get(function () {
   return (
-    this.isActive &&
     this.isApproved &&
     this.assignedTeams.length < this.maxTeams
   );
+});
+
+projectBankSchema.virtual("assignedTeamCount").get(function () {
+  return this.assignedTeams ? this.assignedTeams.length : 0;
 });
 
 projectBankSchema.pre("save", function (next) {
