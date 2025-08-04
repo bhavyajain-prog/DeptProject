@@ -1,814 +1,984 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import axios from "../../../services/axios";
 import {
-  FaChevronDown,
-  FaChevronUp,
   FaUsers,
+  FaFilter,
+  FaPlusCircle,
+  FaInfoCircle,
   FaProjectDiagram,
   FaChalkboardTeacher,
   FaCheckCircle,
-  FaTimesCircle,
-  FaSpinner,
-  FaPlusCircle,
-  FaPaperPlane,
-  FaInfoCircle,
 } from "react-icons/fa";
 
-// Placeholder for a more sophisticated Modal component if needed later
-const Modal = ({ isOpen, onClose, title, children }) => {
+// Enhanced Modal Component
+const Modal = ({ isOpen, onClose, title, children, size = "md" }) => {
   if (!isOpen) return null;
+
+  const sizeClasses = {
+    sm: "max-w-md",
+    md: "max-w-lg",
+    lg: "max-w-4xl",
+    xl: "max-w-6xl",
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold text-gray-800">{title}</h3>
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div
+        className={`bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden border border-gray-100`}
+      >
+        <div className="flex justify-between items-center px-8 py-6 border-b border-gray-200 bg-gray-50">
+          <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
+            className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 w-8 h-8 rounded-full flex items-center justify-center text-xl font-bold transition-all duration-200"
           >
-            &times;
+            ×
           </button>
         </div>
-        {children}
+        <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="p-8">{children}</div>
+        </div>
       </div>
     </div>
   );
 };
 
-const TeamCard = ({ team, onToggleExpand, isExpanded, onOpenActionModal }) => {
-  const getStatusClass = (status) => {
-    if (status === "approved") return "bg-green-100 text-green-700";
-    if (status === "rejected") return "bg-red-100 text-red-700";
-    return "bg-yellow-100 text-yellow-700";
-  };
+// Team Details Modal Component
+const TeamDetailsModal = ({ isOpen, onClose, team, onOpenActionModal }) => {
+  if (!team) return null;
 
   const leader = team.leader;
-  const teamSize = team.members?.length || 0; // team.members already includes the leader if populated that way, or it's just other members. Assuming team.leader is separate.
 
   return (
-    <div className="bg-white shadow-lg rounded-lg p-6 transition-all duration-300 ease-in-out">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-teal-700">{team.code}</h2>
-          <p className="text-sm text-gray-600">
-            Leader: {leader?.name || "N/A"} (
-            {leader?.studentData?.rollNumber || leader?.username || "N/A"})
-          </p>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Team Details: ${team.code}`}
+      size="xl"
+    >
+      <div className="space-y-8">
+        {/* Team Status and Basic Info */}
+        <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-6 rounded-xl border border-gray-200 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-1">
+              <h4 className="font-bold text-gray-800 mb-4 text-lg border-b border-gray-200 pb-2">
+                Team Information
+              </h4>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-100">
+                  <strong className="text-gray-600">Code:</strong>
+                  <span className="font-semibold text-gray-800">
+                    {team.code}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-100">
+                  <strong className="text-gray-600">Status:</strong>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      team.status === "approved"
+                        ? "bg-green-100 text-green-800 border border-green-200"
+                        : team.status === "rejected"
+                        ? "bg-red-100 text-red-800 border border-red-200"
+                        : "bg-yellow-100 text-yellow-800 border border-yellow-200"
+                    }`}
+                  >
+                    {team.status.toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-100">
+                  <strong className="text-gray-600">Department:</strong>
+                  <span className="font-semibold text-gray-800">
+                    {team.department ||
+                      leader?.studentData?.department ||
+                      "N/A"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-100">
+                  <strong className="text-gray-600">Batch:</strong>
+                  <span className="font-semibold text-gray-800">
+                    {team.batch || leader?.studentData?.batch || "N/A"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-100">
+                  <strong className="text-gray-600">Team Size:</strong>
+                  <span className="font-semibold text-gray-800">
+                    {(team.members?.length || 0) + 1} members
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-bold text-gray-800 mb-4 text-lg border-b border-gray-200 pb-2">
+                Project & Mentor Status
+              </h4>
+              <div className="space-y-3 text-sm">
+                <div className="bg-white p-3 rounded-lg border border-gray-100">
+                  <strong className="text-gray-600 block mb-1">
+                    Final Project:
+                  </strong>
+                  <span className="font-semibold text-gray-800">
+                    {team.finalProject?.title || "Not allocated"}
+                  </span>
+                </div>
+                <div className="bg-white p-3 rounded-lg border border-gray-100">
+                  <strong className="text-gray-600 block mb-1">Mentor:</strong>
+                  <span className="font-semibold text-gray-800">
+                    {team.mentor?.assigned?.name ||
+                      (team.mentor?.currentPreference === -1
+                        ? "Needs allocation"
+                        : "In progress")}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <span
-          className={`px-3 py-1 text-sm font-semibold rounded-full ${getStatusClass(
-            team.status
-          )} mt-2 sm:mt-0`}
-        >
-          {team.status}
-        </span>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-sm">
-        <p>
-          <strong className="text-gray-700">Department:</strong>{" "}
-          {team.department || leader?.studentData?.department || "N/A"}
-        </p>
-        <p>
-          <strong className="text-gray-700">Batch:</strong>{" "}
-          {team.batch || leader?.studentData?.batch || "N/A"}
-        </p>
-        <p>
-          <FaUsers className="inline mr-2 text-teal-600" />
-          Team Size: {teamSize}
-        </p>
-        <p>
-          <FaProjectDiagram className="inline mr-2 text-teal-600" />
-          Final Project:{" "}
-          {team.finalProject?.title ||
-            (team.projectChoices?.length > 0
-              ? `${team.projectChoices.length} choices (click details)`
-              : "Not chosen")}
-        </p>
-        <p>
-          <FaChalkboardTeacher className="inline mr-2 text-teal-600" />
-          Mentor:{" "}
-          {team.mentor?.assigned?.name ||
-            (team.mentor?.preferences?.length > 0
-              ? `${team.mentor.preferences.length} preferences`
-              : "None")}
-          {team.mentor?.assigned
-            ? ""
-            : team.mentor?.currentPreference === -1
-            ? " (Needs Allocation)"
-            : ""}
-        </p>
-      </div>
+        {/* Team Leader */}
+        <div>
+          <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+            <FaUsers className="mr-2 text-teal-600" />
+            Team Leader
+          </h4>
+          <div className="bg-teal-50 p-4 rounded-lg border border-teal-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm text-gray-600">Name</p>
+                <p className="font-medium">{leader?.name || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Roll Number</p>
+                <p className="font-medium">
+                  {leader?.studentData?.rollNumber || leader?.username || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Email</p>
+                <p className="font-medium">{leader?.email || "N/A"}</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      <div className="flex flex-wrap gap-2 mt-4">
-        <button
-          onClick={() => onToggleExpand(team._id)}
-          className="text-sm bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-md flex items-center transition-colors"
-        >
-          {isExpanded ? (
-            <FaChevronUp className="mr-2" />
+        {/* Team Members */}
+        <div>
+          <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+            <FaUsers className="mr-2 text-teal-600" />
+            Team Members (
+            {team.members?.filter((m) => m.student?._id !== leader?._id)
+              .length || 0}
+            )
+          </h4>
+          {team.members?.filter((m) => m.student?._id !== leader?._id).length >
+          0 ? (
+            <div className="space-y-3">
+              {team.members
+                .filter((m) => m.student?._id !== leader?._id)
+                .map((member, index) => (
+                  <div
+                    key={member.student?._id || index}
+                    className="bg-gray-50 p-4 rounded-lg border"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Name</p>
+                        <p className="font-medium">
+                          {member.student?.name || "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Roll Number</p>
+                        <p className="font-medium">
+                          {member.student?.studentData?.rollNumber ||
+                            member.student?.username ||
+                            "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Email</p>
+                        <p className="font-medium">
+                          {member.student?.email || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
           ) : (
-            <FaChevronDown className="mr-2" />
+            <div className="bg-gray-50 p-4 rounded-lg border text-center text-gray-500">
+              No other members in this team
+            </div>
           )}
-          Details
-        </button>
-        {(team.status === "pending" || team.status === "rejected") && (
-          <>
+        </div>
+
+        {/* Project Information */}
+        <div>
+          <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+            <FaProjectDiagram className="mr-2 text-teal-600" />
+            Project Information
+          </h4>
+          {team.finalProject ? (
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <h5 className="font-semibold text-green-800 mb-2">
+                Final Allocated Project
+              </h5>
+              <div className="space-y-2">
+                <p>
+                  <strong>Title:</strong> {team.finalProject.title}
+                </p>
+                <p>
+                  <strong>Category:</strong> {team.finalProject.category}
+                </p>
+                <p>
+                  <strong>Description:</strong> {team.finalProject.description}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h5 className="font-medium text-gray-700 mb-3">
+                Project Choices
+              </h5>
+              {team.projectChoices?.length > 0 ? (
+                <div className="space-y-3">
+                  {team.projectChoices.map((project, index) => (
+                    <div
+                      key={project._id || index}
+                      className="bg-gray-50 p-4 rounded-lg border"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-semibold text-teal-700">
+                            Choice {index + 1}: {project.title}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            <strong>Category:</strong> {project.category}
+                          </p>
+                          <p className="text-sm text-gray-700 mt-2">
+                            {project.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-gray-50 p-4 rounded-lg border text-center text-gray-500">
+                  No project choices specified
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mentor Information */}
+        <div>
+          <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+            <FaChalkboardTeacher className="mr-2 text-teal-600" />
+            Mentor Information
+          </h4>
+          {team.mentor?.assigned ? (
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <h5 className="font-semibold text-green-800 mb-2">
+                Assigned Mentor
+              </h5>
+              <p className="font-medium">
+                {team.mentor.assigned.name || team.mentor.assigned.username}
+              </p>
+            </div>
+          ) : team.mentor?.currentPreference === -1 ? (
+            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+              <h5 className="font-semibold text-red-800 mb-2">Mentor Status</h5>
+              <p className="text-red-700">
+                Needs manual allocation by administrator
+              </p>
+            </div>
+          ) : (
+            <div>
+              <h5 className="font-medium text-gray-700 mb-3">
+                Mentor Preferences
+              </h5>
+              {team.mentor?.preferences?.length > 0 ? (
+                <div className="space-y-2">
+                  {team.mentor.preferences.map((mentor, index) => (
+                    <div
+                      key={mentor._id || index}
+                      className="bg-gray-50 p-3 rounded-lg border"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">
+                          Preference {index + 1}:{" "}
+                          {mentor.name || mentor.username || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-gray-50 p-4 rounded-lg border text-center text-gray-500">
+                  No mentor preferences specified
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Evaluation Data */}
+        {team.evaluation && (
+          <div>
+            <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+              <FaCheckCircle className="mr-2 text-teal-600" />
+              Evaluation Data
+            </h4>
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {team.evaluation.weeklyProgress?.length > 0 && (
+                  <div>
+                    <p className="text-sm text-gray-600">
+                      Average Weekly Progress
+                    </p>
+                    <p className="font-semibold text-blue-700">
+                      {team.averageWeeklyProgress?.toFixed(2) || "N/A"}
+                    </p>
+                  </div>
+                )}
+                {team.evaluation.finalEvaluation?.score && (
+                  <div>
+                    <p className="text-sm text-gray-600">Final Score</p>
+                    <p className="font-semibold text-blue-700">
+                      {team.evaluation.finalEvaluation.score}
+                    </p>
+                  </div>
+                )}
+              </div>
+              {(!team.evaluation.weeklyProgress ||
+                team.evaluation.weeklyProgress.length === 0) &&
+                !team.evaluation.finalEvaluation?.score && (
+                  <p className="text-center text-gray-500 italic">
+                    No evaluation data recorded yet
+                  </p>
+                )}
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-3 pt-4 border-t">
+          {(team.status === "pending" || team.status === "rejected") && (
             <button
-              onClick={() => onOpenActionModal(team, "approveReject")}
-              className="text-sm bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center transition-colors"
+              onClick={() => {
+                onClose();
+                onOpenActionModal(team, "approveReject");
+              }}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center transition-colors"
             >
               <FaCheckCircle className="mr-2" /> Approve/Reject
             </button>
-          </>
+          )}
+          {team.status === "approved" &&
+            !team.mentor?.assigned &&
+            team.mentor?.currentPreference === -1 && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenActionModal(team, "allocateMentor");
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center transition-colors"
+              >
+                <FaPlusCircle className="mr-2" /> Allocate Mentor
+              </button>
+            )}
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+// Team Card Component - Simplified without expand/collapse
+const TeamCard = ({ team, onOpenDetailsModal, onOpenActionModal }) => {
+  const getStatusClass = (status) => {
+    if (status === "approved")
+      return "bg-green-100 text-green-800 border-green-200";
+    if (status === "rejected") return "bg-red-100 text-red-800 border-red-200";
+    return "bg-yellow-100 text-yellow-800 border-yellow-200";
+  };
+
+  const leader = team.leader;
+  const teamSize = (team.members?.length || 0) + 1; // +1 for leader
+
+  return (
+    <div className="bg-white shadow-lg rounded-xl p-6 transition-all duration-300 ease-in-out hover:shadow-2xl hover:scale-105 border border-gray-100 group">
+      {/* Header with Team Code and Status */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        {/* Left: Team Code and Leader Info */}
+        <div className="flex-1 min-w-0">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-teal-700 transition-colors truncate">
+            {team.code}
+          </h2>
+          <div className="bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+            <p className="text-sm text-gray-700 font-medium truncate">
+              <span className="text-teal-600 font-semibold">Leader:</span>{" "}
+              {leader?.name || "N/A"}
+            </p>
+            <p className="text-xs text-gray-500 truncate">
+              Roll:{" "}
+              {leader?.studentData?.rollNumber || leader?.username || "N/A"}
+            </p>
+          </div>
+        </div>
+
+        {/* Right: Status Badge */}
+        <div className="shrink-0">
+          <span
+            className={`px-3 py-1 text-sm font-bold rounded-full border ${getStatusClass(
+              team.status
+            )} whitespace-nowrap`}
+          >
+            {team.status.toUpperCase()}
+          </span>
+        </div>
+      </div>
+
+      {/* Team Information Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 rounded-lg border border-gray-200">
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <strong className="text-gray-600">
+                <pre>Dept: </pre>
+              </strong>
+              <span
+                className="font-semibold text-gray-800 text-right truncate max-w-[140px]"
+                title={
+                  team.department || leader?.studentData?.department || "N/A"
+                }
+              >
+                {team.department || leader?.studentData?.department || "N/A"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <strong className="text-gray-600">Batch:</strong>
+              <span
+                className="font-semibold text-gray-800 text-right truncate max-w-[140px]"
+                title={team.batch || leader?.studentData?.batch || "N/A"}
+              >
+                {team.batch || leader?.studentData?.batch || "N/A"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-teal-50 to-cyan-50 p-4 rounded-lg border border-teal-200">
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <FaUsers className="mr-2 text-teal-600" />
+                <strong className="text-gray-600">Team Size:</strong>
+              </div>
+              <span className="font-bold text-teal-700">{teamSize}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <FaProjectDiagram className="mr-2 text-teal-600" />
+                <strong className="text-gray-600">Project:</strong>
+              </div>
+              <span
+                className="font-semibold text-gray-800 text-xs text-right max-w-[140px] truncate"
+                title={
+                  team.finalProject?.title ||
+                  (team.projectChoices?.length > 0
+                    ? `${team.projectChoices.length} choices`
+                    : "Not chosen")
+                }
+              >
+                {team.finalProject?.title ||
+                  (team.projectChoices?.length > 0
+                    ? `${team.projectChoices.length} choices`
+                    : "Not chosen")}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mentor Status */}
+      <div className="mb-6">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <FaChalkboardTeacher className="mr-3 text-blue-600" />
+              <strong className="text-gray-700">Mentor Status:</strong>
+            </div>
+            <div className="text-right">
+              <span className="font-semibold text-gray-800 block">
+                {team.mentor?.assigned?.name ||
+                  (team.mentor?.preferences?.length > 0
+                    ? `${team.mentor.preferences.length} preferences`
+                    : "None")}
+              </span>
+              {team.mentor?.assigned ? (
+                <span className="text-xs text-green-600 font-medium">
+                  ✓ Assigned
+                </span>
+              ) : team.mentor?.currentPreference === -1 ? (
+                <span className="text-xs text-red-600 font-medium">
+                  ⚠ Needs Allocation
+                </span>
+              ) : (
+                <span className="text-xs text-blue-600 font-medium">
+                  ⏳ In Progress
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-wrap gap-3">
+        <button
+          onClick={() => onOpenDetailsModal(team)}
+          className="flex-1 min-w-fit bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center"
+        >
+          <FaInfoCircle className="mr-2" />
+          View Details
+        </button>
+        {(team.status === "pending" || team.status === "rejected") && (
+          <button
+            onClick={() => onOpenActionModal(team, "approveReject")}
+            className="flex-1 min-w-fit bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center"
+          >
+            <FaCheckCircle className="mr-2" /> Approve/Reject
+          </button>
         )}
         {team.status === "approved" &&
           !team.mentor?.assigned &&
           team.mentor?.currentPreference === -1 && (
             <button
               onClick={() => onOpenActionModal(team, "allocateMentor")}
-              className="text-sm bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center transition-colors"
+              className="flex-1 min-w-fit bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center"
             >
               <FaPlusCircle className="mr-2" /> Allocate Mentor
             </button>
           )}
       </div>
-
-      {isExpanded && (
-        <div className="mt-6 border-t pt-4">
-          <h4 className="text-md font-semibold text-gray-700 mb-3">
-            Full Details:
-          </h4>
-          <div className="text-sm text-gray-700 space-y-2">
-            {" "}
-            {/* Increased base font size for this section */}
-            <div>
-              <strong>Leader:</strong>
-              <div className="ml-4 p-2 border-l-2 border-teal-100">
-                <p>
-                  <strong>Name:</strong> {leader?.name || "N/A"}
-                </p>
-                <p>
-                  <strong>Roll No:</strong>{" "}
-                  {leader?.studentData?.rollNumber || leader?.username || "N/A"}
-                </p>
-                <p>
-                  <strong>Email:</strong> {leader?.email || "N/A"}
-                </p>
-              </div>
-            </div>
-            <div>
-              <strong>
-                Members (
-                {team.members?.filter((m) => m.student?._id !== leader?._id)
-                  .length || 0}{" "}
-                other):
-              </strong>
-              {team.members?.filter((m) => m.student?._id !== leader?._id)
-                .length > 0 ? (
-                <ul className="list-none ml-4 space-y-2">
-                  {team.members
-                    .filter((m) => m.student?._id !== leader?._id)
-                    .map((member) => (
-                      <li
-                        key={member.student?._id || member._id}
-                        className="p-2 border-l-2 border-gray-200"
-                      >
-                        <p>
-                          <strong>Name:</strong> {member.student?.name || "N/A"}
-                        </p>
-                        <p>
-                          <strong>Roll No:</strong>{" "}
-                          {member.student?.studentData?.rollNumber ||
-                            member.student?.username ||
-                            "N/A"}
-                        </p>
-                        <p>
-                          <strong>Email:</strong>{" "}
-                          {member.student?.email || "N/A"}
-                        </p>
-                      </li>
-                    ))}
-                </ul>
-              ) : (
-                <span className="ml-2 italic">No other members.</span>
-              )}
-            </div>
-            {!team.finalProject ? (
-              <div>
-                <strong>Project Choices:</strong>
-                {team.projectChoices?.length > 0 ? (
-                  <ul className="list-none ml-4 space-y-3">
-                    {team.projectChoices.map((p, index) => (
-                      <li
-                        key={p._id || index}
-                        className="p-3 border rounded-md shadow-sm bg-slate-50"
-                      >
-                        <p className="font-semibold text-teal-700">
-                          Choice {index + 1}: {p.title || "N/A"}
-                        </p>
-                        <p>
-                          <strong>Category:</strong> {p.category || "N/A"}
-                        </p>
-                        <p className="mt-1">
-                          <strong>Description:</strong> {p.description || "N/A"}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <span className="italic">None</span>
-                )}
-              </div>
-            ) : (
-              <div className="mt-3">
-                <p className="font-semibold text-lg text-green-700">
-                  Final Allocated Project:
-                </p>
-                <div className="ml-4 p-3 border rounded-md shadow-sm bg-green-50">
-                  <p className="font-semibold">
-                    {team.finalProject.title || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Category:</strong>{" "}
-                    {team.finalProject.category || "N/A"}
-                  </p>
-                  <p className="mt-1">
-                    <strong>Description:</strong>{" "}
-                    {team.finalProject.description || "N/A"}
-                  </p>
-                </div>
-              </div>
-            )}
-            <div>
-              {team.mentor?.currentPreference === -1 &&
-              !team.mentor?.assigned ? (
-                <div>
-                  <strong className="text-red-600">Mentor Status:</strong>
-                  <p className="text-red-600 font-medium ml-4">
-                    Needs manual allocation by administrator
-                  </p>
-                </div>
-              ) : team.mentor?.assigned ? (
-                <div>
-                  <strong>Assigned Mentor:</strong>
-                  <div className="ml-4 p-2 border-l-2 border-green-200 bg-green-50">
-                    <p className="font-medium text-green-700">
-                      {team.mentor.assigned.name ||
-                        team.mentor.assigned.username ||
-                        "N/A"}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <strong>Mentor Preferences:</strong>
-                  {team.mentor?.preferences?.length > 0 ? (
-                    <ul className="list-disc list-inside ml-4">
-                      {team.mentor.preferences.map((pref, index) => (
-                        <li key={pref._id || index}>
-                          {pref.name || pref.username || pref._id || "N/A"}
-                          {index === team.mentor?.currentPreference && (
-                            <span className="text-xs text-blue-500 ml-1">
-                              (Current)
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <span className="italic">None specified</span>
-                  )}
-                </div>
-              )}
-            </div>
-            {team.evaluation && (
-              <div className="mt-3">
-                <p className="font-semibold text-md">Evaluation Data:</p>
-                <div className="ml-4 space-y-1 text-gray-600">
-                  {team.evaluation.weeklyProgress?.length > 0 && (
-                    <p>
-                      Average Weekly Progress:{" "}
-                      {team.averageWeeklyProgress?.toFixed(2) || "N/A"}
-                    </p>
-                  )}
-                  {team.evaluation.finalEvaluation?.score && (
-                    <p>Final Score: {team.evaluation.finalEvaluation.score}</p>
-                  )}
-                  {(!team.evaluation.weeklyProgress ||
-                    team.evaluation.weeklyProgress.length === 0) &&
-                    !team.evaluation.finalEvaluation?.score && (
-                      <p className="italic">No evaluation data recorded yet.</p>
-                    )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
+  );
+};
+
+// Action Modal for Team Actions
+const ActionModal = ({
+  isOpen,
+  onClose,
+  team,
+  action,
+  mentors,
+  onRefresh,
+  setShowActionModal,
+}) => {
+  const [status, setStatus] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [selectedMentor, setSelectedMentor] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  if (!team) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (action === "approveReject") {
+        if (status === "approved") {
+          await axios.post(`/admin/approve/${team._id}`, {
+            feedback,
+          });
+        } else if (status === "rejected") {
+          await axios.post(`/admin/reject/${team._id}`, {
+            feedback,
+          });
+        }
+      } else if (action === "allocateMentor") {
+        await axios.post(`/admin/allocate/${team._id}/${selectedMentor}`, {});
+      }
+
+      alert(
+        `Team ${
+          action === "approveReject" ? status : "mentor allocation"
+        } successful!`
+      );
+      onRefresh();
+      setShowActionModal(null);
+    } catch (error) {
+      console.error(`Error ${action}:`, error);
+      alert(
+        `Error ${action}: ${error.response?.data?.message || error.message}`
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={
+        action === "approveReject"
+          ? `Approve/Reject Team ${team.code}`
+          : `Allocate Mentor to Team ${team.code}`
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {action === "approveReject" ? (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Action
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                required
+              >
+                <option value="">Select action</option>
+                <option value="approved">Approve</option>
+                <option value="rejected">Reject</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Feedback
+              </label>
+              <textarea
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                rows="3"
+                placeholder="Provide feedback for the team..."
+                required
+              />
+            </div>
+          </>
+        ) : (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Mentor
+            </label>
+            <select
+              value={selectedMentor}
+              onChange={(e) => setSelectedMentor(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+              required
+            >
+              <option value="">Select a mentor</option>
+              {mentors.map((mentor) => (
+                <option key={mentor._id} value={mentor._id}>
+                  {mentor.name || mentor.username} - {mentor.email}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="flex justify-end space-x-3 pt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-md transition-colors disabled:opacity-50"
+          >
+            {loading ? "Processing..." : "Submit"}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 };
 
 export default function ManageTeams() {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedTeamId, setExpandedTeamId] = useState(null);
-  const [searchTerm, setSearchTerm] = useState(""); // Added for search
-
-  // Filter states
+  const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [mentorFilter, setMentorFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
-  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
+  const [mentors, setMentors] = useState([]);
 
-  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
-  const [selectedTeamForAction, setSelectedTeamForAction] = useState(null);
-  const [actionType, setActionType] = useState(""); // 'approveReject' or 'allocateMentor'
-  const [feedbackText, setFeedbackText] = useState("");
-  const [remainingMentors, setRemainingMentors] = useState([]);
-  const [selectedMentorId, setSelectedMentorId] = useState("");
-  const [actionLoading, setActionLoading] = useState(false);
-  const [actionMessage, setActionMessage] = useState(""); // For success/error messages from actions
-
-  const fetchTeams = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get("/admin/teams");
-      setTeams(response.data.teams || []);
-    } catch (err) {
-      console.error("Fetch teams error:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Modal states
+  const [showDetailsModal, setShowDetailsModal] = useState(null);
+  const [showActionModal, setShowActionModal] = useState(null);
 
   useEffect(() => {
     fetchTeams();
-  }, [fetchTeams]);
+    fetchMentors();
+  }, []);
 
-  const fetchRemainingMentors = useCallback(async () => {
-    if (actionType !== "allocateMentor") return;
-    setActionLoading(true);
+  const fetchTeams = async () => {
     try {
-      const response = await axios.get("/admin/remaining-mentors");
-      setRemainingMentors(response.data.mentors || []);
-    } catch (err) {
-      setActionMessage("Failed to fetch available mentors.");
-      console.error("Fetch remaining mentors error:", err);
+      setLoading(true);
+      const response = await axios.get("/admin/teams");
+      setTeams(response.data.teams);
+    } catch (error) {
+      console.error("Error fetching teams:", error);
+      alert(
+        "Error fetching teams: " +
+          (error.response?.data?.message || error.message)
+      );
     } finally {
-      setActionLoading(false);
+      setLoading(false);
     }
-  }, [actionType]);
+  };
 
-  // Get unique departments for filter dropdown
-  const departments = [
-    ...new Set(
-      teams
-        .map((team) => team.department || team.leader?.studentData?.department)
-        .filter(Boolean)
-    ),
-  ];
+  const fetchMentors = async () => {
+    try {
+      const response = await axios.get("/admin/mentors");
+      setMentors(response.data);
+    } catch (error) {
+      console.error("Error fetching mentors:", error);
+    }
+  };
 
-  // Filtered teams based on search term and filters
-  const displayTeams = teams.filter((team) => {
-    // Search filter
-    const searchTermLower = searchTerm.toLowerCase();
+  const filteredTeams = teams.filter((team) => {
+    const leader = team.leader;
     const matchesSearch =
-      !searchTerm ||
-      team.code.toLowerCase().includes(searchTermLower) ||
-      (team.leader?.name &&
-        team.leader.name.toLowerCase().includes(searchTermLower)) ||
-      (team.leader?.studentData?.rollNumber &&
-        team.leader.studentData.rollNumber
-          .toLowerCase()
-          .includes(searchTermLower)) ||
-      team.projectChoices?.some((p) =>
-        p.title.toLowerCase().includes(searchTermLower)
-      ) ||
-      (team.finalProject?.title &&
-        team.finalProject.title.toLowerCase().includes(searchTermLower));
+      team.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      leader?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      leader?.studentData?.rollNumber
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      team.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      team.batch?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Status filter
     const matchesStatus =
       statusFilter === "all" || team.status === statusFilter;
 
-    // Mentor filter
-    let matchesMentor = true;
-    if (mentorFilter === "assigned") {
-      matchesMentor = !!team.mentor?.assigned;
-    } else if (mentorFilter === "not-assigned") {
-      matchesMentor = !team.mentor?.assigned;
-    } else if (mentorFilter === "needs-allocation") {
-      matchesMentor =
-        !team.mentor?.assigned && team.mentor?.currentPreference === -1;
-    } else if (mentorFilter === "in-progress") {
-      matchesMentor =
-        !team.mentor?.assigned && team.mentor?.currentPreference !== -1;
-    }
+    const matchesMentor =
+      mentorFilter === "all" ||
+      (mentorFilter === "assigned" && team.mentor?.assigned) ||
+      (mentorFilter === "unassigned" && !team.mentor?.assigned) ||
+      (mentorFilter === "needsAllocation" &&
+        team.mentor?.currentPreference === -1);
 
-    // Project filter
-    let matchesProject = true;
-    if (projectFilter === "allocated") {
-      matchesProject = !!team.finalProject;
-    } else if (projectFilter === "not-allocated") {
-      matchesProject = !team.finalProject;
-    } else if (projectFilter === "has-choices") {
-      matchesProject = !team.finalProject && team.projectChoices?.length > 0;
-    } else if (projectFilter === "no-choices") {
-      matchesProject =
-        !team.finalProject &&
-        (!team.projectChoices || team.projectChoices.length === 0);
-    }
+    const matchesProject =
+      projectFilter === "all" ||
+      (projectFilter === "allocated" && team.finalProject) ||
+      (projectFilter === "unallocated" && !team.finalProject);
 
-    // Department filter
-    const teamDepartment =
-      team.department || team.leader?.studentData?.department;
-    const matchesDepartment =
-      departmentFilter === "all" || teamDepartment === departmentFilter;
-
-    return (
-      matchesSearch &&
-      matchesStatus &&
-      matchesMentor &&
-      matchesProject &&
-      matchesDepartment
-    );
+    return matchesSearch && matchesStatus && matchesMentor && matchesProject;
   });
-
-  const handleToggleExpand = (teamId) => {
-    setExpandedTeamId(expandedTeamId === teamId ? null : teamId);
-  };
-
-  const handleOpenActionModal = (team, type) => {
-    setSelectedTeamForAction(team);
-    setActionType(type);
-    setIsActionModalOpen(true);
-    setFeedbackText("");
-    setSelectedMentorId("");
-    setActionMessage("");
-    if (type === "allocateMentor") {
-      fetchRemainingMentors();
-    }
-  };
-
-  const handleCloseActionModal = () => {
-    setIsActionModalOpen(false);
-    setSelectedTeamForAction(null);
-    setActionType("");
-    setFeedbackText("");
-    setSelectedMentorId("");
-    setRemainingMentors([]);
-    setActionMessage("");
-  };
-
-  const handleApproveRejectSubmit = async (isApproved) => {
-    if (!selectedTeamForAction) return;
-    if (!isApproved && !feedbackText.trim()) {
-      setActionMessage("Feedback is required for rejection.");
-      return;
-    }
-    setActionLoading(true);
-    setActionMessage("");
-    try {
-      const endpoint = isApproved
-        ? `/admin/approve/${selectedTeamForAction.id}`
-        : `/admin/reject/${selectedTeamForAction.id}`;
-      await axios.post(endpoint, { feedback: feedbackText });
-      setActionMessage(
-        `Team ${selectedTeamForAction.code} ${
-          isApproved ? "approved" : "rejected"
-        } successfully.`
-      );
-      fetchTeams(); // Refresh team list
-      setTimeout(() => {
-        // Keep modal open for a bit to show message
-        handleCloseActionModal();
-      }, 2000);
-    } catch (err) {
-      setActionMessage(
-        err.response?.data?.message ||
-          `Failed to ${isApproved ? "approve" : "reject"} team.`
-      );
-      console.error("Approve/Reject error:", err);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleAllocateMentorSubmit = async () => {
-    if (!selectedTeamForAction || !selectedMentorId) {
-      setActionMessage("Please select a mentor.");
-      return;
-    }
-    setActionLoading(true);
-    setActionMessage("");
-    try {
-      await axios.post(
-        `/admin/allocate/${selectedTeamForAction.code}/${selectedMentorId}`
-      );
-      setActionMessage(
-        `Mentor allocated to team ${selectedTeamForAction.code} successfully.`
-      );
-      fetchTeams(); // Refresh team list
-      setTimeout(() => {
-        // Keep modal open for a bit to show message
-        handleCloseActionModal();
-      }, 2000);
-    } catch (err) {
-      setActionMessage(
-        err.response?.data?.message || "Failed to allocate mentor."
-      );
-      console.error("Allocate mentor error:", err);
-    } finally {
-      setActionLoading(false);
-    }
-  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex justify-center items-center">
-        <FaSpinner className="animate-spin text-4xl text-teal-600" />
-        <p className="ml-3 text-lg text-gray-700">Loading teams...</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex justify-center items-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-teal-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading teams...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Manage Teams</h1>
-
-      {/* Search and Filter Controls */}
-      <div className="mb-6 space-y-4">
-        {/* Search Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 items-center">
-          <input
-            type="text"
-            placeholder="Search teams by code, leader, project..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-grow p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-          />
-          <div className="text-sm text-gray-600 whitespace-nowrap">
-            {displayTeams.length} team{displayTeams.length !== 1 ? "s" : ""}{" "}
-            found
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div className="flex items-center mb-4 sm:mb-0">
+              <div className="bg-teal-600 p-3 rounded-lg mr-4">
+                <FaUsers className="text-white text-2xl" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-gray-800 mb-1">
+                  Manage Teams
+                </h1>
+                <p className="text-gray-600">
+                  Oversee team formations, approvals, and mentor allocations
+                </p>
+              </div>
+            </div>
+            <div className="bg-teal-50 px-6 py-3 rounded-lg border border-teal-200">
+              <p className="text-sm text-gray-600 mb-1">Total Teams</p>
+              <p className="text-2xl font-bold text-teal-700">{teams.length}</p>
+            </div>
           </div>
         </div>
 
-        {/* Filter Options */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Status Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
-            >
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
+        {/* Search and Filter Controls */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+          <div className="p-6">
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Search */}
+              <div className="flex-1">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search teams, leaders, roll numbers..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent shadow-sm bg-gray-50 focus:bg-white transition-all"
+                  />
+                  <FaUsers className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                </div>
+              </div>
 
-          {/* Mentor Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mentor Status
-            </label>
-            <select
-              value={mentorFilter}
-              onChange={(e) => setMentorFilter(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
-            >
-              <option value="all">All Mentors</option>
-              <option value="assigned">Assigned</option>
-              <option value="not-assigned">Not Assigned</option>
-              <option value="needs-allocation">Needs Allocation</option>
-              <option value="in-progress">In Progress</option>
-            </select>
-          </div>
+              {/* Filter Toggle */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`px-6 py-3 rounded-md font-medium transition-colors flex items-center ${
+                  showFilters
+                    ? "bg-teal-700 text-white"
+                    : "bg-teal-600 hover:bg-teal-700 text-white"
+                }`}
+              >
+                <FaFilter className="mr-2" />
+                Filters {showFilters ? "▼" : "▶"}
+              </button>
+            </div>
 
-          {/* Project Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Project Status
-            </label>
-            <select
-              value={projectFilter}
-              onChange={(e) => setProjectFilter(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
-            >
-              <option value="all">All Projects</option>
-              <option value="allocated">Allocated</option>
-              <option value="not-allocated">Not Allocated</option>
-              <option value="has-choices">Has Choices</option>
-              <option value="no-choices">No Choices</option>
-            </select>
-          </div>
+            {/* Filter Options */}
+            {showFilters && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Status Filter
+                    </label>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent shadow-sm bg-gray-50 focus:bg-white transition-all"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
 
-          {/* Department Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Department
-            </label>
-            <select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
-            >
-              <option value="all">All Departments</option>
-              {departments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Mentor Status
+                    </label>
+                    <select
+                      value={mentorFilter}
+                      onChange={(e) => setMentorFilter(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent shadow-sm bg-gray-50 focus:bg-white transition-all"
+                    >
+                      <option value="all">All Mentors</option>
+                      <option value="assigned">Assigned</option>
+                      <option value="unassigned">Unassigned</option>
+                      <option value="needsAllocation">Needs Allocation</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Project Status
+                    </label>
+                    <select
+                      value={projectFilter}
+                      onChange={(e) => setProjectFilter(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent shadow-sm bg-gray-50 focus:bg-white transition-all"
+                    >
+                      <option value="all">All Projects</option>
+                      <option value="allocated">Allocated</option>
+                      <option value="unallocated">Unallocated</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Results Summary */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600">
+                  Showing{" "}
+                  <span className="font-semibold text-teal-600">
+                    {filteredTeams.length}
+                  </span>{" "}
+                  of <span className="font-semibold">{teams.length}</span> teams
+                </p>
+                {filteredTeams.length !== teams.length && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm("");
+                      setStatusFilter("all");
+                      setMentorFilter("all");
+                      setProjectFilter("all");
+                    }}
+                    className="text-sm text-teal-600 hover:text-teal-700 font-medium underline"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Clear Filters Button */}
-        {(searchTerm ||
-          statusFilter !== "all" ||
-          mentorFilter !== "all" ||
-          projectFilter !== "all" ||
-          departmentFilter !== "all") && (
-          <div className="flex justify-end">
-            <button
-              onClick={() => {
-                setSearchTerm("");
-                setStatusFilter("all");
-                setMentorFilter("all");
-                setProjectFilter("all");
-                setDepartmentFilter("all");
-              }}
-              className="px-4 py-2 text-sm bg-gray-500 hover:bg-gray-600 text-white rounded-md transition-colors"
-            >
-              Clear All Filters
-            </button>
+        {/* Teams Grid */}
+        {filteredTeams.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-lg p-12 text-center border border-gray-200">
+            <div className="bg-gray-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
+              <FaUsers className="h-12 w-12 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-3">
+              No teams found
+            </h3>
+            <p className="text-gray-600 max-w-md mx-auto leading-relaxed">
+              {teams.length === 0
+                ? "No teams have been created yet. Teams will appear here once students start forming teams."
+                : "No teams match your current search and filter criteria. Try adjusting your filters or search terms."}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+            {filteredTeams.map((team) => (
+              <TeamCard
+                key={team._id}
+                team={team}
+                onOpenDetailsModal={(team) => setShowDetailsModal(team)}
+                onOpenActionModal={(team, action) =>
+                  setShowActionModal({ team, action })
+                }
+              />
+            ))}
           </div>
         )}
+
+        {/* Team Details Modal */}
+        <TeamDetailsModal
+          isOpen={!!showDetailsModal}
+          onClose={() => setShowDetailsModal(null)}
+          team={showDetailsModal}
+          onOpenActionModal={(team, action) => {
+            setShowDetailsModal(null);
+            setShowActionModal({ team, action });
+          }}
+        />
+
+        {/* Action Modal */}
+        <ActionModal
+          isOpen={!!showActionModal}
+          onClose={() => setShowActionModal(null)}
+          team={showActionModal?.team}
+          action={showActionModal?.action}
+          mentors={mentors}
+          onRefresh={fetchTeams}
+          setShowActionModal={setShowActionModal}
+        />
       </div>
-
-      {actionMessage && (
-        <div
-          className={`p-4 mb-4 rounded-lg text-sm ${
-            actionMessage.includes("Failed") ||
-            actionMessage.includes("required")
-              ? "bg-red-100 text-red-700"
-              : "bg-green-100 text-green-700"
-          }`}
-        >
-          {actionMessage}
-        </div>
-      )}
-
-      {displayTeams.length > 0 ? (
-        <div className="space-y-6">
-          {displayTeams.map((team) => (
-            <TeamCard
-              key={team._id}
-              team={team}
-              isExpanded={expandedTeamId === team._id}
-              onToggleExpand={handleToggleExpand}
-              onOpenActionModal={handleOpenActionModal}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-10">
-          <FaInfoCircle className="mx-auto text-4xl text-gray-400 mb-4" />
-          <p className="text-lg text-gray-600">
-            No teams found matching your criteria.
-          </p>
-        </div>
-      )}
-
-      <Modal
-        isOpen={isActionModalOpen && actionType === "approveReject"}
-        onClose={handleCloseActionModal}
-        title={`Approve/Reject Team: ${selectedTeamForAction?.code}`}
-      >
-        <div className="space-y-4">
-          <textarea
-            value={feedbackText}
-            onChange={(e) => setFeedbackText(e.target.value)}
-            placeholder="Provide feedback (optional for approval, required for rejection)"
-            className="w-full p-2 border border-gray-300 rounded-md h-24 focus:ring-teal-500 focus:border-teal-500"
-          />
-          {actionMessage && (
-            <p
-              className={`text-sm ${
-                actionMessage.includes("Failed") ||
-                actionMessage.includes("required")
-                  ? "text-red-600"
-                  : "text-green-600"
-              }`}
-            >
-              {actionMessage}
-            </p>
-          )}
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={() => handleApproveRejectSubmit(true)}
-              disabled={actionLoading}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center disabled:bg-gray-300"
-            >
-              {actionLoading ? (
-                <FaSpinner className="animate-spin mr-2" />
-              ) : (
-                <FaCheckCircle className="mr-2" />
-              )}{" "}
-              Approve
-            </button>
-            <button
-              onClick={() => handleApproveRejectSubmit(false)}
-              disabled={actionLoading}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md flex items-center disabled:bg-gray-300"
-            >
-              {actionLoading ? (
-                <FaSpinner className="animate-spin mr-2" />
-              ) : (
-                <FaTimesCircle className="mr-2" />
-              )}{" "}
-              Reject
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={isActionModalOpen && actionType === "allocateMentor"}
-        onClose={handleCloseActionModal}
-        title={`Allocate Mentor to Team: ${selectedTeamForAction?.code}`}
-      >
-        <div className="space-y-4">
-          {actionLoading && !remainingMentors.length && (
-            <p className="text-sm text-gray-600 flex items-center">
-              <FaSpinner className="animate-spin mr-2" />
-              Loading available mentors...
-            </p>
-          )}
-
-          {remainingMentors.length > 0 ? (
-            <select
-              value={selectedMentorId}
-              onChange={(e) => setSelectedMentorId(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
-            >
-              <option value="">Select a Mentor</option>
-              {remainingMentors.map((mentor) => (
-                <option key={mentor._id} value={mentor._id}>
-                  {mentor.name} ({mentor.email}) - Teams:{" "}
-                  {mentor.mentorData?.assignedTeams?.length || 0}/
-                  {mentor.mentorData?.maxTeams || "N/A"}
-                </option>
-              ))}
-            </select>
-          ) : (
-            !actionLoading && (
-              <p className="text-sm text-yellow-600">
-                No available mentors found or failed to load.
-              </p>
-            )
-          )}
-
-          {actionMessage && (
-            <p
-              className={`text-sm ${
-                actionMessage.includes("Failed") ||
-                actionMessage.includes("Please")
-                  ? "text-red-600"
-                  : "text-green-600"
-              }`}
-            >
-              {actionMessage}
-            </p>
-          )}
-
-          <div className="flex justify-end">
-            <button
-              onClick={handleAllocateMentorSubmit}
-              disabled={
-                actionLoading ||
-                !selectedMentorId ||
-                remainingMentors.length === 0
-              }
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center disabled:bg-gray-300"
-            >
-              {actionLoading ? (
-                <FaSpinner className="animate-spin mr-2" />
-              ) : (
-                <FaPaperPlane className="mr-2" />
-              )}{" "}
-              Allocate
-            </button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

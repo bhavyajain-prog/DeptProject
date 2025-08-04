@@ -13,7 +13,6 @@ import {
   FaChevronUp,
   FaUserShield,
   FaUserGraduate,
-  FaProjectDiagram,
   FaUsers,
 } from "react-icons/fa";
 
@@ -42,10 +41,11 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 const ProjectCard = ({ project, onAction }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const getStatusClass = (isApproved) =>
-    isApproved
-      ? "bg-green-100 text-green-700"
-      : "bg-yellow-100 text-yellow-700";
+  const getStatusClass = (isApproved, rejectedAt) => {
+    if (isApproved) return "bg-green-100 text-green-700";
+    if (rejectedAt) return "bg-red-100 text-red-700";
+    return "bg-yellow-100 text-yellow-700";
+  };
 
   const getProposerIcon = (role) => {
     if (role === "admin")
@@ -69,10 +69,11 @@ const ProjectCard = ({ project, onAction }) => {
         </div>
         <span
           className={`px-3 py-1 text-sm font-semibold rounded-full ${getStatusClass(
-            project.isApproved
+            project.isApproved,
+            project.rejectedAt
           )} mt-2 sm:mt-0`}
         >
-          {project.isApproved ? "Approved" : "Pending"}
+          {project.isApproved ? "Approved" : project.rejectedAt ? "Rejected" : "Pending"}
         </span>
       </div>
 
@@ -85,15 +86,6 @@ const ProjectCard = ({ project, onAction }) => {
           <FaUsers className="inline mr-2 text-teal-600" />
           Assigned Teams: {project.assignedTeams?.length || 0} /{" "}
           {project.maxTeams}
-        </p>
-        <p>
-          <FaProjectDiagram className="inline mr-2 text-teal-600" />
-          Active:{" "}
-          {project.isActive ? (
-            <FaCheckCircle className="text-green-500 inline" />
-          ) : (
-            <FaTimesCircle className="text-red-500 inline" />
-          )}
         </p>
       </div>
 
@@ -109,13 +101,15 @@ const ProjectCard = ({ project, onAction }) => {
           )}
           Details
         </button>
-        <button
-          onClick={() => onAction("edit", project)}
-          className="text-sm bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center"
-        >
-          <FaEdit className="mr-2" /> Edit
-        </button>
-        {!project.isApproved && (
+        {!project.rejectedAt && (
+          <button
+            onClick={() => onAction("edit", project)}
+            className="text-sm bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center"
+          >
+            <FaEdit className="mr-2" /> Edit
+          </button>
+        )}
+        {!project.isApproved && !project.rejectedAt && (
           <>
             <button
               onClick={() => onAction("approve", project)}
@@ -137,13 +131,22 @@ const ProjectCard = ({ project, onAction }) => {
             </button>
           </>
         )}
-        <button
-          onClick={() => onAction("delete", project)}
-          className="text-sm bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md flex items-center"
-        >
-          <FaTrash className="mr-2" /> Delete
-        </button>
+        {!project.rejectedAt && (
+          <button
+            onClick={() => onAction("delete", project)}
+            className="text-sm bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md flex items-center"
+          >
+            <FaTrash className="mr-2" /> Delete
+          </button>
+        )}
       </div>
+      {project.rejectedAt && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <span className="text-sm text-red-700 font-semibold">
+            ✗ This project has been rejected and operations are disabled
+          </span>
+        </div>
+      )}
 
       {isExpanded && (
         <div className="mt-6 border-t pt-4 text-sm text-gray-700 space-y-2">
@@ -159,6 +162,11 @@ const ProjectCard = ({ project, onAction }) => {
           {project.approvedBy && (
             <p>
               <strong>Approved by:</strong> {project.approvedBy.name}
+            </p>
+          )}
+          {project.rejectedAt && (
+            <p>
+              <strong>Rejected on:</strong> {new Date(project.rejectedAt).toLocaleDateString()}
             </p>
           )}
           <div>
@@ -238,7 +246,11 @@ export default function ManageProjects() {
 
     const matchesApproval =
       approvalFilter === "all" ||
-      (approvalFilter === "approved" ? p.isApproved : !p.isApproved);
+      (approvalFilter === "rejected" 
+        ? p.rejectedAt
+        : approvalFilter === "approved"
+        ? p.isApproved && !p.rejectedAt
+        : !p.isApproved && !p.rejectedAt);
 
     const matchesProposer =
       proposerFilter === "all" || p.proposedBy?.role === proposerFilter;
@@ -261,10 +273,12 @@ export default function ManageProjects() {
         description: "",
         category: "",
         maxTeams: 1,
-        isActive: false,
+        isAvailable: false,
       });
     } else if (type === "edit" && project) {
       setFormData({ ...project });
+    } else if (type === "schedule") {
+      setFormData({ discussionDate: "" });
     } else {
       setFormData({});
     }
@@ -276,6 +290,8 @@ export default function ManageProjects() {
     setSelectedProject(null);
     setModalType("");
     setFormData({});
+    setActionMessage("");
+    setActionLoading(false);
   };
 
   const handleFormChange = (e) => {
@@ -314,6 +330,11 @@ export default function ManageProjects() {
   };
 
   const handleAction = async (type, project) => {
+    // Prevent actions on rejected projects (except for viewing details)
+    if (project?.rejectedAt && !["add"].includes(type)) {
+      return;
+    }
+    
     if (["edit", "add"].includes(type)) {
       handleOpenModal(type, project);
       return;
@@ -350,20 +371,30 @@ export default function ManageProjects() {
           await axios.post(endpoint, { feedback: formData.feedback });
           successMessage = "Project rejected successfully.";
           break;
-        case "schedule":
+        case "schedule": {
           endpoint = `/admin/schedule-project-discussion`;
           if (!formData.discussionDate) {
             setActionMessage("Discussion date is required.");
             setActionLoading(false);
             return;
           }
+          
+          // Validate that the date is in the future
+          const selectedDate = new Date(formData.discussionDate);
+          const now = new Date();
+          if (selectedDate <= now) {
+            setActionMessage("Discussion date must be in the future.");
+            setActionLoading(false);
+            return;
+          }
+          
           await axios.post(endpoint, {
             projectId: selectedProject._id,
-            date: formData.discussionDate,
-            notes: formData.notes,
+            dateTime: formData.discussionDate,
           });
           successMessage = "Discussion scheduled successfully.";
           break;
+        }
         default:
           throw new Error("Invalid action type");
       }
@@ -419,7 +450,11 @@ export default function ManageProjects() {
               />
             </div>
             {actionMessage && (
-              <p className="text-sm text-red-600">{actionMessage}</p>
+              <p className={`text-sm ${
+                actionMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {actionMessage}
+              </p>
             )}
             <div className="flex justify-end gap-2">
               <button
@@ -453,7 +488,11 @@ export default function ManageProjects() {
               {selectedProject?.title}&quot;?
             </p>
             {actionMessage && (
-              <p className="text-sm text-red-600 mt-2">{actionMessage}</p>
+              <p className={`text-sm mt-2 ${
+                actionMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {actionMessage}
+              </p>
             )}
             <div className="flex justify-end gap-2 mt-4">
               <button
@@ -493,7 +532,11 @@ export default function ManageProjects() {
               className="w-full p-2 border rounded mt-2 h-20"
             />
             {actionMessage && (
-              <p className="text-sm text-red-600 mt-2">{actionMessage}</p>
+              <p className={`text-sm mt-2 ${
+                actionMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {actionMessage}
+              </p>
             )}
             <div className="flex justify-end gap-2 mt-4">
               <button
@@ -521,40 +564,49 @@ export default function ManageProjects() {
       case "schedule":
         return (
           <div>
-            <p>Schedule discussion for &quot;{selectedProject?.title}&quot;</p>
-            <div className="space-y-4 mt-4">
-              <input
-                name="discussionDate"
-                type="datetime-local"
-                onChange={handleFormChange}
-                className="w-full p-2 border rounded"
-              />
-              <textarea
-                name="notes"
-                onChange={handleFormChange}
-                placeholder="Discussion notes (optional)"
-                className="w-full p-2 border rounded h-20"
-              />
+            <p className="mb-4">Schedule discussion for &quot;{selectedProject?.title}&quot;</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Discussion Date & Time
+                </label>
+                <input
+                  name="discussionDate"
+                  type="datetime-local"
+                  value={formData.discussionDate || ""}
+                  onChange={handleFormChange}
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="w-full p-2 border rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Select a future date and time for the project discussion
+                </p>
+              </div>
             </div>
             {actionMessage && (
-              <p className="text-sm text-red-600 mt-2">{actionMessage}</p>
+              <p className={`text-sm mt-3 ${
+                actionMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {actionMessage}
+              </p>
             )}
-            <div className="flex justify-end gap-2 mt-4">
+            <div className="flex justify-end gap-2 mt-6">
               <button
                 onClick={handleCloseModal}
-                className="px-4 py-2 bg-gray-200 rounded"
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmAction}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-purple-600 text-white rounded disabled:bg-gray-400"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded disabled:bg-gray-400 transition-colors"
               >
                 {actionLoading ? (
                   <FaSpinner className="animate-spin" />
                 ) : (
-                  "Schedule"
+                  "Schedule Discussion"
                 )}
               </button>
             </div>
@@ -620,6 +672,7 @@ export default function ManageProjects() {
             <option value="all">All Approval Status</option>
             <option value="approved">Approved</option>
             <option value="pending">Pending</option>
+            <option value="rejected">Rejected</option>
           </select>
           {/* Proposer Filter */}
           <select

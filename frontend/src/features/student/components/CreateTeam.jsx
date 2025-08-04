@@ -13,7 +13,7 @@ const selectStyles = {
       borderColor: "#5eead4", // teal-300
     },
     boxShadow: "none",
-    borderRadius: '0.5rem',
+    borderRadius: "0.5rem",
   }),
   option: (provided, state) => ({
     ...provided,
@@ -56,9 +56,7 @@ export default function CreateTeam() {
         })) || []
       );
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Failed to load required data."
-      );
+      setError(err.response?.data?.message || "Failed to load required data.");
     } finally {
       setLoading(false);
     }
@@ -116,6 +114,7 @@ export default function CreateTeam() {
     try {
       const response = await axios.post("/common/create-team", payload);
       setTeamCreated(response.data.team);
+      console.log("Team created successfully:", response.data.team);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create team.");
     } finally {
@@ -124,8 +123,8 @@ export default function CreateTeam() {
   };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(teamCreated.team.teamCode);
-    alert("Team code copied to clipboard!");
+    navigator.clipboard.writeText(teamCreated.code);
+    // alert("Team code copied to clipboard!");
   };
 
   const filteredProjects = projects.filter(
@@ -170,10 +169,12 @@ export default function CreateTeam() {
             join.
           </p>
           <div className="mb-6">
-            <p className="text-lg font-semibold text-gray-700">Your Team Code:</p>
+            <p className="text-lg font-semibold text-gray-700">
+              Your Team Code:
+            </p>
             <div className="mt-2 flex items-center justify-center gap-2 bg-teal-50 p-4 rounded-lg border-2 border-dashed border-teal-200">
               <span className="text-3xl font-mono font-bold text-teal-600 tracking-widest">
-                {teamCreated.team?.teamCode}
+                {teamCreated.code}
               </span>
               <button
                 onClick={copyToClipboard}
@@ -184,7 +185,10 @@ export default function CreateTeam() {
             </div>
           </div>
           <button
-            onClick={() => navigate("/home")}
+            onClick={() => {
+              navigate("/home");
+              window.location.reload();
+            }}
             className="w-full bg-teal-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-teal-600 transition-transform transform hover:-translate-y-1 shadow-md"
           >
             Go to My Dashboard
@@ -227,10 +231,11 @@ export default function CreateTeam() {
                 filteredProjects.map((project) => (
                   <div
                     key={project._id}
-                    className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${selectedProjects.includes(project._id)
+                    className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${
+                      selectedProjects.includes(project._id)
                         ? "bg-teal-100 border-2 border-teal-400 shadow-md"
                         : "bg-white border border-gray-200 hover:bg-teal-50"
-                      }`}
+                    }`}
                     onClick={() => handleProjectSelect(project._id)}
                   >
                     <div className="flex items-center">

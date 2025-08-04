@@ -1,7 +1,12 @@
 import { useState } from "react";
 import axios from "../../../services/axios";
 import { useNavigate } from "react-router-dom";
-import { FaUsers, FaSpinner, FaCheckCircle, FaInfoCircle } from "react-icons/fa";
+import {
+  FaUsers,
+  FaSpinner,
+  FaCheckCircle,
+  FaInfoCircle,
+} from "react-icons/fa";
 
 export default function JoinTeam() {
   const [code, setCode] = useState("");
@@ -12,7 +17,7 @@ export default function JoinTeam() {
 
   const joinTeam = async (e) => {
     e.preventDefault();
-    
+
     if (!code.trim()) {
       setError("Please enter a team code");
       return;
@@ -41,13 +46,14 @@ export default function JoinTeam() {
 
       setSuccess(true);
       setTimeout(() => {
-        navigate("/my-team");
+        navigate("/home");
+        window.location.reload();
       }, 1500);
     } catch (err) {
       console.error("Failed to join team:", err);
       setError(
-        err.response?.data?.message || 
-        "Failed to join team. Please check the team code and try again."
+        err.response?.data?.message ||
+          "Failed to join team. Please check the team code and try again."
       );
     } finally {
       setLoading(false);
@@ -57,7 +63,7 @@ export default function JoinTeam() {
   const handleCodeChange = (e) => {
     const value = e.target.value.toUpperCase();
     // Only allow alphanumeric characters
-    const filteredValue = value.replace(/[^A-Z0-9]/g, '');
+    const filteredValue = value.replace(/[^A-Z0-9]/g, "");
     setCode(filteredValue);
     if (error) setError(""); // Clear error when user starts typing
   };
@@ -71,7 +77,7 @@ export default function JoinTeam() {
             Successfully Joined!
           </h2>
           <p className="text-gray-600 mb-6">
-            Welcome to the team! Redirecting you to your team page...
+            Welcome to the team! Redirecting you to your dashboard...
           </p>
           <div className="flex justify-center">
             <FaSpinner className="animate-spin text-2xl text-teal-600" />
@@ -93,7 +99,10 @@ export default function JoinTeam() {
           </p>
         </header>
 
-        <form onSubmit={joinTeam} className="bg-white p-8 rounded-2xl shadow-lg space-y-6">
+        <form
+          onSubmit={joinTeam}
+          className="bg-white p-8 rounded-2xl shadow-lg space-y-6"
+        >
           {/* Team Code Input */}
           <div className="space-y-2">
             <label className="block text-lg font-semibold text-gray-800">
@@ -107,8 +116,8 @@ export default function JoinTeam() {
                 onChange={handleCodeChange}
                 maxLength={6}
                 className={`w-full p-4 text-lg font-mono border rounded-lg focus:ring-2 focus:ring-teal-400 transition-colors ${
-                  error 
-                    ? "border-red-300 focus:border-red-400" 
+                  error
+                    ? "border-red-300 focus:border-red-400"
                     : "border-gray-300 focus:border-teal-400"
                 }`}
                 disabled={loading}
@@ -117,7 +126,8 @@ export default function JoinTeam() {
               <FaUsers className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
             <p className="text-sm text-gray-500">
-              Team codes are exactly 6 characters long and contain only letters and numbers.
+              Team codes are exactly 6 characters long and contain only letters
+              and numbers.
             </p>
           </div>
 
@@ -156,8 +166,13 @@ export default function JoinTeam() {
             </h3>
             <ul className="text-sm text-teal-700 space-y-2">
               <li>• Ask your team leader for the team code</li>
-              <li>• Team codes are exactly 6 characters (letters and numbers only)</li>
-              <li>• Once you join, you&apos;ll have access to your team&apos;s projects and activities</li>
+              <li>
+                • Team codes are exactly 6 characters (letters and numbers only)
+              </li>
+              <li>
+                • Once you join, you&apos;ll have access to your team&apos;s
+                projects and activities
+              </li>
               <li>• You can only be part of one team at a time</li>
             </ul>
           </div>

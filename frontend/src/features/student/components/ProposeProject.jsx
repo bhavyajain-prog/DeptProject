@@ -42,7 +42,7 @@ const ProjectBankCard = ({ project }) => (
     <div className="text-xs text-gray-500">
       <p>Proposed by: {project.proposedBy?.name || "Admin"}</p>
       <p>
-        Teams Assigned: {project.assignedTeamCount} / {project.maxTeams}
+        Teams Assigned: {project.assignedTeamCount || 0} / {project.maxTeams || 1}
       </p>
     </div>
   </div>
@@ -51,6 +51,13 @@ const ProjectBankCard = ({ project }) => (
 // Card for displaying user's own proposals
 const MyProposalCard = ({ project, onWithdraw, onEdit }) => {
   const getStatusInfo = () => {
+    if (project.rejectedAt) {
+      return {
+        icon: <FaTimesCircle className="text-red-500" />,
+        text: "Rejected",
+        color: "red",
+      };
+    }
     if (project.isApproved) {
       return {
         icon: <FaCheckCircle className="text-green-500" />,
@@ -58,7 +65,6 @@ const MyProposalCard = ({ project, onWithdraw, onEdit }) => {
         color: "green",
       };
     }
-    // Assuming there's a mechanism to mark as rejected, which would add feedback.
     if (project.feedback && project.feedback.length > 0) {
       const rejection = project.feedback.find((f) =>
         f.message.toLowerCase().includes("reject")
@@ -113,22 +119,38 @@ const MyProposalCard = ({ project, onWithdraw, onEdit }) => {
         </div>
       )}
 
-      {!project.isApproved && (
+      {!project.isApproved && !project.rejectedAt && (
         <div className="text-right mt-4 flex justify-end items-center space-x-2">
           <button
             onClick={() => onEdit(project)}
-            className="text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-1 px-3 rounded-md flex items-center"
+            className="text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-1 px-3 rounded-md flex items-center transition-colors"
           >
             <FaEdit className="mr-2" />
             Edit
           </button>
           <button
             onClick={() => onWithdraw(project._id)}
-            className="text-sm bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-1 px-3 rounded-md flex items-center"
+            className="text-sm bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-1 px-3 rounded-md flex items-center transition-colors"
           >
             <FaTrash className="mr-2" />
             Withdraw
           </button>
+        </div>
+      )}
+      
+      {project.isApproved && (
+        <div className="text-right mt-4">
+          <span className="text-sm text-green-600 font-semibold">
+            ✓ This project is approved and cannot be modified
+          </span>
+        </div>
+      )}
+      
+      {project.rejectedAt && (
+        <div className="text-right mt-4">
+          <span className="text-sm text-red-600 font-semibold">
+            ✗ This project has been rejected and cannot be modified
+          </span>
         </div>
       )}
     </div>
@@ -158,14 +180,17 @@ export default function ProposeProject() {
     setLoading(true);
     setError(null);
     try {
-      const [bankRes, proposalsRes] = await Promise.all([
-        axios.get("/common/project-bank"),
-        axios.get("/common/my-proposed-projects"),
-      ]);
+      const bankPromise = axios.get("/common/project-bank").catch(() => ({ data: [] }));
+      const proposalsPromise = axios.get("/common/my-proposed-projects").catch(() => ({ data: [] }));
+      
+      const [bankRes, proposalsRes] = await Promise.all([bankPromise, proposalsPromise]);
+      
       setProjectBank(bankRes.data || []);
       setMyProposals(proposalsRes.data || []);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to fetch project data.");
+      // Only set error for serious connectivity issues
+      console.error("Error fetching data:", err);
+      setError("Unable to connect to the server. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -178,6 +203,10 @@ export default function ProposeProject() {
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear action messages when user starts typing
+    if (actionMessage.text) {
+      setActionMessage({ type: "", text: "" });
+    }
   };
 
   const handleFormSubmit = async (e) => {
@@ -217,13 +246,28 @@ export default function ProposeProject() {
   };
 
   const handleWithdraw = async (id) => {
-    if (window.confirm("Are you sure you want to withdraw this proposal?")) {
+    if (window.confirm("Are you sure you want to withdraw this proposal? This action cannot be undone.")) {
       try {
         await axios.post(`/common/withdraw-project/${id}`);
-        alert("Proposal withdrawn successfully.");
+        // Show success message in a more user-friendly way
+        setActionMessage({
+          type: "success",
+          text: "Proposal withdrawn successfully."
+        });
         fetchData(); // Refresh data
+        // Clear message after 3 seconds
+        setTimeout(() => {
+          setActionMessage({ type: "", text: "" });
+        }, 3000);
       } catch (err) {
-        alert(err.response?.data?.message || "Failed to withdraw proposal.");
+        setActionMessage({
+          type: "error",
+          text: err.response?.data?.message || "Failed to withdraw proposal."
+        });
+        // Clear error message after 5 seconds
+        setTimeout(() => {
+          setActionMessage({ type: "", text: "" });
+        }, 5000);
       }
     }
   };
@@ -285,6 +329,17 @@ export default function ProposeProject() {
   return (
     <div className="bg-gray-50 min-h-screen p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
+        {/* Global message display */}
+        {actionMessage.text && (
+          <div className={`mb-6 p-4 rounded-lg ${
+            actionMessage.type === "error" 
+              ? "bg-red-100 border border-red-300 text-red-700" 
+              : "bg-green-100 border border-green-300 text-green-700"
+          }`}>
+            {actionMessage.text}
+          </div>
+        )}
+        
         <header className="flex flex-col sm:flex-row justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-4 sm:mb-0">
             Project Bank
@@ -338,9 +393,14 @@ export default function ProposeProject() {
                   <ProjectBankCard key={p._id} project={p} />
                 ))
               ) : (
-                <p className="text-gray-500 md:col-span-2 lg:col-span-3 text-center">
-                  No projects found.
-                </p>
+                <div className="md:col-span-2 lg:col-span-3 text-center py-10">
+                  <p className="text-gray-500 text-lg mb-4">
+                    {searchTerm ? "No projects match your search." : "No approved projects are available yet."}
+                  </p>
+                  <p className="text-gray-400 text-sm">
+                    {!searchTerm && "Be the first to propose a project by clicking the button above!"}
+                  </p>
+                </div>
               )}
             </div>
           </div>
@@ -356,9 +416,20 @@ export default function ProposeProject() {
                 />
               ))
             ) : (
-              <p className="text-gray-500 text-center py-10">
-                You haven&apos;t proposed any projects yet.
-              </p>
+              <div className="text-center py-10">
+                <p className="text-gray-500 text-lg mb-4">
+                  You haven&apos;t proposed any projects yet.
+                </p>
+                <p className="text-gray-400 text-sm mb-6">
+                  Start by proposing a project that interests you or your team!
+                </p>
+                <button
+                  onClick={openModalForCreate}
+                  className="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center mx-auto shadow-md hover:shadow-lg transition-transform transform hover:-translate-y-1"
+                >
+                  <FaPlus className="mr-2" /> Propose Your First Project
+                </button>
+              </div>
             )}
           </div>
         )}
