@@ -38,16 +38,20 @@ export default function Login() {
           switch (res.data.user.role) {
             case "student":
               navigate("/home");
+              window.location.reload();
               break;
             case "mentor":
               navigate("/mentor/home");
+              window.location.reload();
               break;
             case "sub-admin": // Added sub-admin role
             case "admin":
               navigate("/admin/home");
+              window.location.reload();
               break;
             case "dev":
               navigate("/dev");
+              window.location.reload();
               break;
             default:
               navigate("/login"); // Fallback, though ideally should not happen

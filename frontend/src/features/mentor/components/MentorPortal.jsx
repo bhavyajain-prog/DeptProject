@@ -80,7 +80,7 @@ export default function MentorPortal() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <MentorActionCard
-            to="/mentor/teams"
+            to="/mentor/team-selection"
             title="My Teams"
             description="View and manage your assigned teams, monitor their progress, and provide guidance."
             icon={<FaUsers />}

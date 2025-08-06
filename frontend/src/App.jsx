@@ -25,6 +25,7 @@ import JoinTeam from "./features/student/components/JoinTeam";
 import ProposeProject from "./features/student/components/ProposeProject";
 
 import MentorPortal from "./features/mentor/components/MentorPortal";
+import TeamSelection from "./features/mentor/components/TeamSelection";
 
 import AdminPortal from "./features/admin/components/AdminPortal";
 import AdminUpload from "./features/admin/components/AdminUpload";
@@ -48,7 +49,10 @@ export default function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/reset-password/:token" element={<ResetPassword />} />
+              <Route
+                path="/reset-password/:token"
+                element={<ResetPassword />}
+              />
               {/* Admin Routes */}
               <Route
                 path="/admin/home"
@@ -145,6 +149,14 @@ export default function App() {
                 element={
                   <RoleBasedRoute roles={["mentor"]}>
                     <MentorPortal />
+                  </RoleBasedRoute>
+                }
+              />
+              <Route
+                path="/mentor/team-selection"
+                element={
+                  <RoleBasedRoute roles={["mentor"]}>
+                    <TeamSelection />
                   </RoleBasedRoute>
                 }
               />
