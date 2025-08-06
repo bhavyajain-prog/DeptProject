@@ -57,30 +57,41 @@ router.get(
   authenticate,
   authorizeRoles("mentor"),
   asyncHandler(async (req, res) => {
-    const teams = await Team.find({
-      "mentor.preferences[mentor.currentPreference]": req.user._id,
-      isApproved: true,
+    const allTeams = await Team.find({
+      "mentor.preferences": req.user._id,
+      status: "approved",
       $or: [
-        { "mentor.assigned": { $exists: false } },
         { "mentor.assigned": null },
+        { "mentor.assigned": { $exists: false } },
       ],
     })
-      .select("_id leader members projectChoices")
+      .select("_id code leader members projectChoices mentor")
       .populate("leader", "_id name email")
       .populate("members.student", "_id name email")
       .populate("projectChoices", "_id title description category")
-      .lean(); // Use lean for performance
+      .lean();
+
+    const teams = allTeams.filter((team) => {
+      const currPrefIndex = team.mentor?.currentPreference;
+      const prefId = team.mentor?.preferences?.[currPrefIndex]?.toString();
+      const userId = req.user._id.toString();
+      return prefId === userId;
+    });
+
     if (!teams || teams.length === 0) {
       return res.status(404).json({ message: "No teams to approve." });
     }
     const formatTeams = teams.map((team) => {
       return {
         _id: team._id,
+        code: team.code,
         leader: team.leader,
         members: team.members.map((m) => m.student),
         projectChoices: team.projectChoices,
       };
     });
+    console.log("Fetched teams for mentor:", teams.length, formatTeams);
+    
     res.status(200).json(formatTeams);
   })
 );
@@ -138,7 +149,7 @@ router.post(
     await user.save();
     await newTeam.save();
     console.log(newTeam);
-    
+
     res
       .status(201)
       .json({ message: "Team created successfully.", team: newTeam });
@@ -467,7 +478,7 @@ router.post(
     team.mentor.assigned = mentor._id;
     team.mentor.assignedAt = Date.now();
     team.finalProject = finalProject;
-    project.isAvailable = false; // Mark project as inactive
+    project.isAvailable = false;
     project.assignedTeams.push(team._id);
     if (feedback) {
       team.feedback.push({ message: feedback, byUser: mentor._id });
