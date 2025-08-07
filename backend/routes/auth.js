@@ -23,36 +23,11 @@ router.get(
     if (req.user.role === "student") {
       userQuery = userQuery.populate({
         path: "studentData.currentTeam",
-        populate: [
-          {
-            path: "leader",
-            select:
-              "name email username studentData.rollNumber studentData.batch studentData.department",
-          },
-          {
-            path: "members.student",
-            select:
-              "name email username studentData.rollNumber studentData.batch studentData.department",
-          },
-          {
-            path: "mentor.assigned",
-            select:
-              "name email username mentorData.department mentorData.designation",
-          },
-          {
-            path: "mentor.preferences",
-            select:
-              "name email username mentorData.department mentorData.designation",
-          },
-          {
-            path: "projectChoices",
-            select: "title description category maxTeams",
-          },
-          {
-            path: "finalProject",
-            select: "title description category maxTeams",
-          },
-        ],
+        select: "code status leader",
+        populate: {
+          path: "leader",
+          select: "_id name username",
+        },
       });
     }
 

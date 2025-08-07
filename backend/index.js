@@ -8,6 +8,7 @@ const fixedUsers = require("./middleware/fixedUsers");
 const auth = require("./routes/auth");
 const admin = require("./routes/admin");
 const common = require("./routes/common");
+const team = require("./routes/team");
 
 const corsOptions = {
   origin: process.env.CLIENT_URL || "http://localhost:5173",
@@ -32,6 +33,7 @@ app.use(cookieParser());
 app.use("/auth", auth);
 app.use("/admin", admin);
 app.use("/common", common);
+app.use("/team", team);
 app.use(errorManager);
 
 const PORT = process.env.PORT || 5000;

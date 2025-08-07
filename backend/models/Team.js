@@ -71,15 +71,13 @@ const teamSchema = new mongoose.Schema(
       },
     ],
 
+    githubRepo: { type: String, required: true },
+
     projectAbstract: {
-      labCoordinator: { type: String },
-      projectId: { type: String },
-      projectTitle: { type: String },
       projectTrack: {
         type: String,
         enum: ["R&D", "Consultancy", "Startup", "Project Pool", "Hardware"],
       },
-      briefIntroduction: { type: String },
       tools: [
         {
           name: { type: String, required: true },
@@ -107,16 +105,8 @@ const teamSchema = new mongoose.Schema(
         ],
         default: "draft",
       },
-      mentorApproval: {
-        approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        approvedAt: { type: Date },
-        feedback: { type: String },
-      },
-      adminApproval: {
-        approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        approvedAt: { type: Date },
-        feedback: { type: String },
-      },
+      mentorApproval: { type: Boolean, default: false },
+      adminApproval: { type: Boolean, default: false },
     },
 
     roleSpecification: {
@@ -127,7 +117,7 @@ const teamSchema = new mongoose.Schema(
             ref: "User",
             required: true,
           },
-          module: { type: String, required: true },
+          modules: [{ type: String, required: true }],
           activities: [
             {
               name: { type: String, required: true },
@@ -156,40 +146,11 @@ const teamSchema = new mongoose.Schema(
         ],
         default: "draft",
       },
-      mentorApproval: {
-        approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        approvedAt: { type: Date },
-        feedback: { type: String },
-      },
-      adminApproval: {
-        approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        approvedAt: { type: Date },
-        feedback: { type: String },
-      },
+      mentorApproval: { type: Boolean, default: false },
+      adminApproval: { type: Boolean, default: false },
     },
 
     evaluation: {
-      weeklyProgress: [
-        {
-          week: { type: Number, required: true },
-          score: { type: Number, required: true, min: 0, max: 10 },
-          feedback: { type: String },
-          submittedBy: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-            required: true,
-          },
-          submittedAt: { type: Date, default: Date.now },
-        },
-      ],
-
-      finalEvaluation: {
-        score: { type: Number, min: 0, max: 100 },
-        feedback: { type: String },
-        submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        submittedAt: { type: Date },
-      },
-
       weeklyStatus: [
         {
           week: { type: Number, required: true },
@@ -222,7 +183,6 @@ const teamSchema = new mongoose.Schema(
         },
         estimatedCompletion: { type: Date },
         mentorRemarks: { type: String },
-        lastUpdated: { type: Date, default: Date.now },
       },
     },
   },
@@ -262,10 +222,6 @@ teamSchema.pre("save", function (next) {
 
 teamSchema.virtual("teamSize").get(function () {
   return this.members.length + 1;
-});
-
-teamSchema.virtual("allMembers").get(function () {
-  return [this.leader, ...this.members.map((m) => m.student)];
 });
 
 teamSchema.virtual("averageWeeklyScore").get(function () {
