@@ -18,7 +18,14 @@ const toTitleCase = (str) => {
 };
 
 // Reusable Action Card with description
-function DevActionCard({ to, title, description, icon, disabled = false, external = false }) {
+function DevActionCard({
+  to,
+  title,
+  description,
+  icon,
+  disabled = false,
+  external = false,
+}) {
   const content = (
     <>
       <div className="text-5xl text-blue-500 mb-5 group-hover:text-blue-600 transition-colors duration-300">
@@ -99,10 +106,14 @@ export default function DevPortal() {
     ],
     mentor: [
       { path: "/mentor/home", name: "Mentor Portal" },
+      { path: "/mentor/team-selection", name: "Team Selection" },
     ],
-    utility: [
-      { path: "/notfound", name: "Not Found Page" },
+    forms: [
+      { path: "/project-abstract", name: "Project Abstract (Form 1)" },
+      { path: "/role-specification", name: "Role Specification (Form 2)" },
+      { path: "/weekly-status", name: "Weekly Status (Form 3)" },
     ],
+    utility: [{ path: "/notfound", name: "Not Found Page" }],
   };
 
   return (
@@ -117,7 +128,8 @@ export default function DevPortal() {
             <span className="font-semibold text-blue-600">
               {toTitleCase(user?.name) || "Developer"}
             </span>
-            ! Access all system components and monitor the entire application ecosystem.
+            ! Access all system components and monitor the entire application
+            ecosystem.
           </p>
         </header>
 
@@ -149,7 +161,7 @@ export default function DevPortal() {
             <FaRoute className="mr-3 text-blue-600" />
             Application Routes
           </h3>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {Object.entries(routes).map(([category, routeList]) => (
               <div key={category} className="space-y-4">
@@ -181,8 +193,9 @@ export default function DevPortal() {
         <div className="mt-16 text-center">
           <div className="bg-blue-50 p-6 rounded-xl">
             <p className="text-gray-600">
-              <strong>Developer Mode Active:</strong> You have access to all routes and can impersonate any user role. 
-              Use this access responsibly for testing and development purposes only.
+              <strong>Developer Mode Active:</strong> You have access to all
+              routes and can impersonate any user role. Use this access
+              responsibly for testing and development purposes only.
             </p>
           </div>
         </div>

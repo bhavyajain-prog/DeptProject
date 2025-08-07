@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
@@ -17,6 +17,9 @@ import {
   FaTimes,
   FaComments,
   FaCopy,
+  FaGithub,
+  FaCode,
+  FaTasks,
 } from "react-icons/fa";
 import axios from "../../../services/axios";
 import Loading from "../../../components/Loading";
@@ -33,25 +36,55 @@ function getColorFromString(str) {
 
 export default function MyTeam() {
   const navigate = useNavigate();
-  const { user, refreshUser, loading } = useAuth();
+  const { user, refreshUser, loading: authLoading } = useAuth();
   const [leaving, setLeaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [team, setTeam] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  if (loading || !user || (user.role === "student" && !user.studentData)) {
+  // Fetch team data on component mount
+  useEffect(() => {
+    const fetchTeamData = async () => {
+      if (!user || user.role !== "student") {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await axios.get("/team/my-team", {
+          withCredentials: true,
+        });
+        setTeam(response.data.team);
+      } catch (err) {
+        console.error("Failed to fetch team data:", err);
+        if (err.response?.status === 404 || err.response?.status === 403) {
+          setTeam(null);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeamData();
+  }, [user]);
+
+  if (authLoading || loading) {
     return <Loading />;
   }
 
-  // Extract team data from user context
-  const team = user?.studentData?.currentTeam;
+  if (!user || user.role !== "student") {
+    return <Loading />;
+  }
 
   const handleLeaveTeam = async () => {
     if (!window.confirm("Are you sure you want to leave the team?")) return;
 
     try {
       setLeaving(true);
-      // You'll need to implement this endpoint in the backend
       await axios.post("/common/leave-team", {}, { withCredentials: true });
       await refreshUser(); // Refresh user data
+      setTeam(null); // Clear team data
       navigate("/home");
     } catch (err) {
       console.error("Failed to leave team:", err);
@@ -62,9 +95,11 @@ export default function MyTeam() {
   };
 
   const copyTeamCode = () => {
-    navigator.clipboard.writeText(team.code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (team?.code) {
+      navigator.clipboard.writeText(team.code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   // If user is not a student or has no team
@@ -330,6 +365,362 @@ export default function MyTeam() {
                     <FaUserGraduate className="text-3xl text-gray-300" />
                   </div>
                   <p className="text-lg">No other team members yet</p>
+                </div>
+              )}
+            </div>
+
+            {/* GitHub Repository */}
+            <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                <div className="bg-gray-100 rounded-full p-2">
+                  <FaGithub className="text-gray-700 text-xl" />
+                </div>
+                GitHub Repository
+              </h2>
+              {team.githubRepo ? (
+                <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <FaGithub className="text-gray-600 text-2xl" />
+                      <div>
+                        <p className="font-medium text-gray-800">
+                          Repository URL:
+                        </p>
+                        <a
+                          href={team.githubRepo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 underline break-all"
+                        >
+                          {team.githubRepo}
+                        </a>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => window.open(team.githubRepo, "_blank")}
+                      className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <FaGithub />
+                      Open
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <FaGithub className="text-4xl mx-auto mb-3 text-gray-300" />
+                  <p>No GitHub repository configured</p>
+                </div>
+              )}
+            </div>
+
+            {/* Project Abstract */}
+            <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                <div className="bg-purple-100 rounded-full p-2">
+                  <FaCode className="text-purple-600 text-xl" />
+                </div>
+                Project Abstract
+                {team.projectAbstract?.status && (
+                  <span
+                    className={`px-3 py-1 text-xs font-medium rounded-full ${
+                      team.projectAbstract.status === "submitted" ||
+                      team.projectAbstract.status === "admin_approved" ||
+                      team.projectAbstract.status === "mentor_approved"
+                        ? "bg-green-100 text-green-800"
+                        : team.projectAbstract.status === "rejected"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {team.projectAbstract.status
+                      .replace("_", " ")
+                      .toUpperCase()}
+                  </span>
+                )}
+              </h2>
+
+              {team.projectAbstract ? (
+                <div className="space-y-6">
+                  {/* Project Track */}
+                  {team.projectAbstract.projectTrack && (
+                    <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                      <h4 className="font-semibold text-purple-800 mb-2">
+                        Project Track
+                      </h4>
+                      <span className="inline-block bg-purple-200 text-purple-800 px-3 py-1 rounded-lg text-sm font-medium">
+                        {team.projectAbstract.projectTrack}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Tools and Technologies */}
+                  {team.projectAbstract.tools &&
+                    team.projectAbstract.tools.length > 0 && (
+                      <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                        <h4 className="font-semibold text-blue-800 mb-3">
+                          Tools & Technologies
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {team.projectAbstract.tools.map((tool, index) => (
+                            <div
+                              key={index}
+                              className="bg-white p-3 rounded-lg border border-blue-100"
+                            >
+                              <div className="font-medium text-gray-800">
+                                {tool.name}
+                              </div>
+                              {tool.version && (
+                                <div className="text-sm text-gray-600">
+                                  Version: {tool.version}
+                                </div>
+                              )}
+                              {tool.type && (
+                                <div className="text-sm text-gray-600">
+                                  Type: {tool.type}
+                                </div>
+                              )}
+                              {tool.purpose && (
+                                <div className="text-sm text-gray-500 mt-1">
+                                  {tool.purpose}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Modules */}
+                  {team.projectAbstract.modules &&
+                    team.projectAbstract.modules.length > 0 && (
+                      <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                        <h4 className="font-semibold text-green-800 mb-3">
+                          Project Modules
+                        </h4>
+                        <div className="space-y-2">
+                          {team.projectAbstract.modules.map((module, index) => (
+                            <div
+                              key={index}
+                              className="bg-white p-3 rounded-lg border border-green-100"
+                            >
+                              <div className="font-medium text-gray-800">
+                                {module.name}
+                              </div>
+                              {module.functionality && (
+                                <div className="text-sm text-gray-600 mt-1">
+                                  {module.functionality}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Submission Info */}
+                  {team.projectAbstract.submittedAt && (
+                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                      <div className="flex items-center justify-between text-sm text-gray-600">
+                        <span>
+                          Submitted:{" "}
+                          {new Date(
+                            team.projectAbstract.submittedAt
+                          ).toLocaleDateString()}
+                        </span>
+                        <div className="flex gap-2">
+                          {team.projectAbstract.mentorApproval && (
+                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                              Mentor ✓
+                            </span>
+                          )}
+                          {team.projectAbstract.adminApproval && (
+                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                              Admin ✓
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <FaCode className="text-4xl mx-auto mb-3 text-gray-300" />
+                  <p>Project abstract not submitted yet</p>
+                  <p className="text-sm mt-1">
+                    Submit your project details and technical specifications
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Role Specification */}
+            <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                <div className="bg-orange-100 rounded-full p-2">
+                  <FaTasks className="text-orange-600 text-xl" />
+                </div>
+                Role Specification
+                {team.roleSpecification?.status && (
+                  <span
+                    className={`px-3 py-1 text-xs font-medium rounded-full ${
+                      team.roleSpecification.status === "submitted" ||
+                      team.roleSpecification.status === "admin_approved" ||
+                      team.roleSpecification.status === "mentor_approved"
+                        ? "bg-green-100 text-green-800"
+                        : team.roleSpecification.status === "rejected"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {team.roleSpecification.status
+                      .replace("_", " ")
+                      .toUpperCase()}
+                  </span>
+                )}
+              </h2>
+
+              {team.roleSpecification?.assignments &&
+              team.roleSpecification.assignments.length > 0 ? (
+                <div className="space-y-6">
+                  {team.roleSpecification.assignments.map(
+                    (assignment, index) => (
+                      <div
+                        key={index}
+                        className="bg-orange-50 rounded-xl p-4 border border-orange-200"
+                      >
+                        <div className="flex items-center gap-3 mb-4">
+                          <img
+                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                              assignment.member?.name || `Member ${index + 1}`
+                            )}&background=${getColorFromString(
+                              assignment.member?.name || `Member ${index + 1}`
+                            )
+                              .slice(4, -1)
+                              .replace(/,/g, "%2C")}&color=ffffff&size=40`}
+                            alt={
+                              assignment.member?.name || `Member ${index + 1}`
+                            }
+                            className="w-10 h-10 rounded-full border-2 border-white"
+                          />
+                          <div>
+                            <h4 className="font-semibold text-orange-800">
+                              {assignment.member?.name || `Member ${index + 1}`}
+                            </h4>
+                            {assignment.modules &&
+                              assignment.modules.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {assignment.modules.map(
+                                    (module, moduleIndex) => (
+                                      <span
+                                        key={moduleIndex}
+                                        className="bg-orange-200 text-orange-800 px-2 py-0.5 rounded text-xs"
+                                      >
+                                        {module}
+                                      </span>
+                                    )
+                                  )}
+                                </div>
+                              )}
+                          </div>
+                        </div>
+
+                        {/* Activities */}
+                        {assignment.activities &&
+                          assignment.activities.length > 0 && (
+                            <div className="space-y-2">
+                              <h5 className="font-medium text-gray-700 text-sm">
+                                Activities:
+                              </h5>
+                              {assignment.activities.map(
+                                (activity, actIndex) => (
+                                  <div
+                                    key={actIndex}
+                                    className="bg-white p-3 rounded-lg border border-orange-100"
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <div className="font-medium text-gray-800">
+                                          {activity.name}
+                                        </div>
+                                        {activity.details && (
+                                          <div className="text-sm text-gray-600 mt-1">
+                                            {activity.details}
+                                          </div>
+                                        )}
+                                        <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                                          {activity.softDeadline && (
+                                            <span>
+                                              Soft:{" "}
+                                              {new Date(
+                                                activity.softDeadline
+                                              ).toLocaleDateString()}
+                                            </span>
+                                          )}
+                                          {activity.hardDeadline && (
+                                            <span>
+                                              Hard:{" "}
+                                              {new Date(
+                                                activity.hardDeadline
+                                              ).toLocaleDateString()}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <span
+                                        className={`px-2 py-1 text-xs font-medium rounded ${
+                                          activity.status === "completed"
+                                            ? "bg-green-100 text-green-800"
+                                            : activity.status === "in-progress"
+                                            ? "bg-blue-100 text-blue-800"
+                                            : "bg-gray-100 text-gray-800"
+                                        }`}
+                                      >
+                                        {activity.status || "pending"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          )}
+                      </div>
+                    )
+                  )}
+
+                  {/* Submission Info */}
+                  {team.roleSpecification.submittedAt && (
+                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                      <div className="flex items-center justify-between text-sm text-gray-600">
+                        <span>
+                          Submitted:{" "}
+                          {new Date(
+                            team.roleSpecification.submittedAt
+                          ).toLocaleDateString()}
+                        </span>
+                        <div className="flex gap-2">
+                          {team.roleSpecification.mentorApproval && (
+                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                              Mentor ✓
+                            </span>
+                          )}
+                          {team.roleSpecification.adminApproval && (
+                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                              Admin ✓
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <FaTasks className="text-4xl mx-auto mb-3 text-gray-300" />
+                  <p>Role specification not submitted yet</p>
+                  <p className="text-sm mt-1">
+                    Define team member roles and responsibilities
+                  </p>
                 </div>
               )}
             </div>

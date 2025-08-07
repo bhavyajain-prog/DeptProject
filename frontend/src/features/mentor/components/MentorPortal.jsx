@@ -81,7 +81,7 @@ export default function MentorPortal() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <MentorActionCard
             to="/mentor/team-selection"
-            title="My Teams"
+            title="Team Selection"
             description="View and manage your assigned teams, monitor their progress, and provide guidance."
             icon={<FaUsers />}
           />
@@ -120,8 +120,9 @@ export default function MentorPortal() {
               Mentorship Guidelines
             </h3>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              As a mentor, you play a crucial role in guiding teams through their project journey. 
-              Use these tools to stay connected, provide timely feedback, and help students achieve their goals.
+              As a mentor, you play a crucial role in guiding teams through
+              their project journey. Use these tools to stay connected, provide
+              timely feedback, and help students achieve their goals.
             </p>
           </div>
         </div>

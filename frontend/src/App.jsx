@@ -34,6 +34,11 @@ import ManageMentors from "./features/admin/components/ManageMentors";
 import ManageStudents from "./features/admin/components/ManageStudents";
 import ManageProjects from "./features/admin/components/ManageProjects";
 
+// Temporary form components
+import Form1 from "../temp/form1";
+import Form2 from "../temp/form2";
+import Form3 from "../temp/form3";
+
 export default function App() {
   return (
     <Router>
@@ -157,6 +162,31 @@ export default function App() {
                 element={
                   <RoleBasedRoute roles={["mentor"]}>
                     <TeamSelection />
+                  </RoleBasedRoute>
+                }
+              />
+              {/* Temporary Form Routes */}
+              <Route
+                path="/project-abstract"
+                element={
+                  <RoleBasedRoute roles={["student", "mentor", "admin", "dev"]}>
+                    <Form1 />
+                  </RoleBasedRoute>
+                }
+              />
+              <Route
+                path="/role-specification"
+                element={
+                  <RoleBasedRoute roles={["student", "mentor", "admin", "dev"]}>
+                    <Form2 />
+                  </RoleBasedRoute>
+                }
+              />
+              <Route
+                path="/weekly-status"
+                element={
+                  <RoleBasedRoute roles={["student", "mentor", "admin", "dev"]}>
+                    <Form3 />
                   </RoleBasedRoute>
                 }
               />

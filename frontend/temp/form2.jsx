@@ -1,16 +1,14 @@
-import React, { useState } from 'react';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+import { useState } from "react";
 
 function Form2() {
   const [members, setMembers] = useState([
     {
-      name: '',
-      module: '',
+      name: "",
+      module: "",
       activities: [
-        { activity: '', softDeadline: '', hardDeadline: '', details: '' }
-      ]
-    }
+        { activity: "", softDeadline: "", hardDeadline: "", details: "" },
+      ],
+    },
   ]);
 
   const handleMemberChange = (index, field, value) => {
@@ -26,16 +24,26 @@ function Form2() {
   };
 
   const addMember = () => {
-    setMembers([...members, {
-      name: '',
-      module: '',
-      activities: [{ activity: '', softDeadline: '', hardDeadline: '', details: '' }]
-    }]);
+    setMembers([
+      ...members,
+      {
+        name: "",
+        module: "",
+        activities: [
+          { activity: "", softDeadline: "", hardDeadline: "", details: "" },
+        ],
+      },
+    ]);
   };
 
   const addActivity = (index) => {
     const updated = [...members];
-    updated[index].activities.push({ activity: '', softDeadline: '', hardDeadline: '', details: '' });
+    updated[index].activities.push({
+      activity: "",
+      softDeadline: "",
+      hardDeadline: "",
+      details: "",
+    });
     setMembers(updated);
   };
 
@@ -56,13 +64,13 @@ function Form2() {
   };
 
   const printForm = () => {
-  const formContent = document.getElementById('form-content');
-  if (!formContent) return;
+    const formContent = document.getElementById("form-content");
+    if (!formContent) return;
 
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
 
-  printWindow.document.write(`
+    printWindow.document.write(`
     <html>
       <head>
         <title>Print Form</title>
@@ -104,33 +112,21 @@ function Form2() {
     </html>
   `);
 
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
-  printWindow.close();
-};
-
-
-  const downloadForm = () => {
-    const doc = new jsPDF();
-    doc.text("Role Specification Form", 20, 20);
-    let y = 40;
-    members.forEach((member, i) => {
-      doc.text(`Member ${i + 1}: ${member.name} - Module: ${member.module}`, 20, y);
-      y += 10;
-      member.activities.forEach((act, j) => {
-        doc.text(`  - ${act.activity} | Soft: ${act.softDeadline} | Hard: ${act.hardDeadline} | ${act.details}`, 25, y);
-        y += 10;
-      });
-      y += 5;
-    });
-    doc.save('form2_roles.pdf');
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
   };
 
   return (
     <div className="bg-gradient-to-br from-slate-100 to-sky-100 min-h-screen py-12 px-4">
-      <div className="max-w-6xl mx-auto bg-white p-8 rounded-xl shadow" id="form-content">
-        <h1 className="text-3xl font-bold text-center mb-10">Form 2 - Role Specification of Team Members</h1>
+      <div
+        className="max-w-6xl mx-auto bg-white p-8 rounded-xl shadow"
+        id="form-content"
+      >
+        <h1 className="text-3xl font-bold text-center mb-10">
+          Form 2 - Role Specification of Team Members
+        </h1>
         <form onSubmit={handleSubmit} className="space-y-6">
           {members.map((member, mIndex) => (
             <div key={mIndex} className="border p-4 rounded mb-6">
@@ -139,49 +135,163 @@ function Form2() {
                   className="w-full p-2 border rounded mb-2"
                   placeholder="Member Name"
                   value={member.name}
-                  onChange={(e) => handleMemberChange(mIndex, 'name', e.target.value)}
+                  onChange={(e) =>
+                    handleMemberChange(mIndex, "name", e.target.value)
+                  }
                 />
                 <input
                   className="w-full p-2 border rounded"
                   placeholder="Handling Module"
                   value={member.module}
-                  onChange={(e) => handleMemberChange(mIndex, 'module', e.target.value)}
+                  onChange={(e) =>
+                    handleMemberChange(mIndex, "module", e.target.value)
+                  }
                 />
               </div>
               <table className="w-full text-sm border border-gray-400">
                 <thead className="bg-gray-200">
                   <tr>
-                    <th className="px-2 py-1 border border-gray-400">Activity</th>
-                    <th className="px-2 py-1 border border-gray-400">Soft Deadline</th>
-                    <th className="px-2 py-1 border border-gray-400">Hard Deadline</th>
-                    <th className="px-2 py-1 border border-gray-400">Details</th>
+                    <th className="px-2 py-1 border border-gray-400">
+                      Activity
+                    </th>
+                    <th className="px-2 py-1 border border-gray-400">
+                      Soft Deadline
+                    </th>
+                    <th className="px-2 py-1 border border-gray-400">
+                      Hard Deadline
+                    </th>
+                    <th className="px-2 py-1 border border-gray-400">
+                      Details
+                    </th>
                     <th className="px-2 py-1 border border-gray-400">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {member.activities.map((activity, aIndex) => (
                     <tr key={aIndex}>
-                      <td className="border border-gray-400"><input className="w-full p-1" value={activity.activity} onChange={(e) => handleActivityChange(mIndex, aIndex, 'activity', e.target.value)} /></td>
-                      <td className="border border-gray-400"><input type='date' className="w-full p-1" value={activity.softDeadline} onChange={(e) => handleActivityChange(mIndex, aIndex, 'softDeadline', e.target.value)} /></td>
-                      <td className="border border-gray-400"><input type='date' className="w-full p-1" value={activity.hardDeadline} onChange={(e) => handleActivityChange(mIndex, aIndex, 'hardDeadline', e.target.value)} /></td>
-                      <td className="border border-gray-400"><input className="w-full p-1" value={activity.details} onChange={(e) => handleActivityChange(mIndex, aIndex, 'details', e.target.value)} /></td>
-                      <td className="border border-gray-400 text-center"><button type="button" onClick={() => deleteActivity(mIndex, aIndex)} className="m-1 px-4 py-1 bg-red-500 hover:bg-red-600 text-white rounded cursor-pointer">Delete</button></td>
+                      <td className="border border-gray-400">
+                        <input
+                          className="w-full p-1"
+                          value={activity.activity}
+                          onChange={(e) =>
+                            handleActivityChange(
+                              mIndex,
+                              aIndex,
+                              "activity",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </td>
+                      <td className="border border-gray-400">
+                        <input
+                          type="date"
+                          className="w-full p-1"
+                          value={activity.softDeadline}
+                          onChange={(e) =>
+                            handleActivityChange(
+                              mIndex,
+                              aIndex,
+                              "softDeadline",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </td>
+                      <td className="border border-gray-400">
+                        <input
+                          type="date"
+                          className="w-full p-1"
+                          value={activity.hardDeadline}
+                          onChange={(e) =>
+                            handleActivityChange(
+                              mIndex,
+                              aIndex,
+                              "hardDeadline",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </td>
+                      <td className="border border-gray-400">
+                        <input
+                          className="w-full p-1"
+                          value={activity.details}
+                          onChange={(e) =>
+                            handleActivityChange(
+                              mIndex,
+                              aIndex,
+                              "details",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </td>
+                      <td className="border border-gray-400 text-center">
+                        <button
+                          type="button"
+                          onClick={() => deleteActivity(mIndex, aIndex)}
+                          className="m-1 px-4 py-1 bg-red-500 hover:bg-red-600 text-white rounded cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <button type="button" onClick={() => addActivity(mIndex)} className="mt-2 px-4 py-1 bg-blue-500 text-white rounded cursor-pointer">Add Activity</button>
-              <button type="button" onClick={() => deleteMember(mIndex)} className="ml-2 mt-2 px-4 py-1 bg-red-600 text-white rounded cursor-pointer">Remove Member</button>
+              <button
+                type="button"
+                onClick={() => addActivity(mIndex)}
+                className="mt-2 px-4 py-1 bg-blue-500 text-white rounded cursor-pointer"
+              >
+                Add Activity
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteMember(mIndex)}
+                className="ml-2 mt-2 px-4 py-1 bg-red-600 text-white rounded cursor-pointer"
+              >
+                Remove Member
+              </button>
             </div>
           ))}
           <div className="flex gap-4">
-            <button type="button" onClick={addMember} className="px-6 py-2 bg-blue-600 text-white rounded cursor-pointer">Add Member</button>
+            <button
+              type="button"
+              onClick={addMember}
+              className="px-6 py-2 bg-blue-600 text-white rounded cursor-pointer"
+            >
+              Add Member
+            </button>
           </div>
           <div className="text-center mt-10 flex flex-wrap justify-center gap-4">
-            <button type="submit" className="px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded shadow cursor-pointer">Submit</button>
-            <button type="button" onClick={() => alert('Form approved!')} className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded shadow cursor-pointer">Approve</button>
-            <button type="button" onClick={downloadForm} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded shadow cursor-pointer">Download</button>
-            <button type="button" onClick={printForm} className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded shadow cursor-pointer">Print</button>
+            <button
+              type="submit"
+              className="px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded shadow cursor-pointer"
+            >
+              Submit
+            </button>
+            <button
+              type="button"
+              onClick={() => alert("Form approved!")}
+              className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded shadow cursor-pointer"
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded shadow cursor-pointer"
+            >
+              Download
+            </button>
+            <button
+              type="button"
+              onClick={printForm}
+              className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded shadow cursor-pointer"
+            >
+              Print
+            </button>
           </div>
         </form>
       </div>
