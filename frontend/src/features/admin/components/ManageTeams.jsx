@@ -362,6 +362,430 @@ const TeamDetailsModal = ({ isOpen, onClose, team, onOpenActionModal }) => {
           </div>
         )}
 
+        {/* Project Abstract */}
+        {team.projectAbstract && (
+          <div>
+            <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+              <FaProjectDiagram className="mr-2 text-purple-600" />
+              Project Abstract
+              {team.projectAbstract.status && (
+                <span
+                  className={`ml-3 px-3 py-1 text-xs font-medium rounded-full ${
+                    team.projectAbstract.status === "submitted" ||
+                    team.projectAbstract.status === "admin_approved" ||
+                    team.projectAbstract.status === "mentor_approved"
+                      ? "bg-green-100 text-green-800"
+                      : team.projectAbstract.status === "rejected"
+                      ? "bg-red-100 text-red-800"
+                      : "bg-yellow-100 text-yellow-800"
+                  }`}
+                >
+                  {team.projectAbstract.status.replace("_", " ").toUpperCase()}
+                </span>
+              )}
+            </h4>
+            <div className="space-y-4">
+              {/* Project Track */}
+              {team.projectAbstract.projectTrack && (
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <h5 className="font-semibold text-purple-800 mb-2">
+                    Project Track
+                  </h5>
+                  <span className="inline-block bg-purple-200 text-purple-800 px-3 py-1 rounded-lg text-sm font-medium">
+                    {team.projectAbstract.projectTrack}
+                  </span>
+                </div>
+              )}
+
+              {/* Tools and Technologies */}
+              {team.projectAbstract.tools &&
+                team.projectAbstract.tools.length > 0 && (
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h5 className="font-semibold text-blue-800 mb-3">
+                      Tools & Technologies
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {team.projectAbstract.tools.map((tool, index) => (
+                        <div
+                          key={index}
+                          className="bg-white p-3 rounded-lg border border-blue-100"
+                        >
+                          <div className="font-medium text-gray-800">
+                            {tool.name}
+                          </div>
+                          {tool.version && (
+                            <div className="text-sm text-gray-600">
+                              Version: {tool.version}
+                            </div>
+                          )}
+                          {tool.type && (
+                            <div className="text-sm text-gray-600">
+                              Type: {tool.type}
+                            </div>
+                          )}
+                          {tool.purpose && (
+                            <div className="text-sm text-gray-500 mt-1">
+                              {tool.purpose}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Modules */}
+              {team.projectAbstract.modules &&
+                team.projectAbstract.modules.length > 0 && (
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <h5 className="font-semibold text-green-800 mb-3">
+                      Project Modules
+                    </h5>
+                    <div className="space-y-2">
+                      {team.projectAbstract.modules.map((module, index) => (
+                        <div
+                          key={index}
+                          className="bg-white p-3 rounded-lg border border-green-100"
+                        >
+                          <div className="font-medium text-gray-800">
+                            {module.name}
+                          </div>
+                          {module.functionality && (
+                            <div className="text-sm text-gray-600 mt-1">
+                              {module.functionality}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Submission Info */}
+              {team.projectAbstract.submittedAt && (
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <span>
+                      Submitted:{" "}
+                      {new Date(
+                        team.projectAbstract.submittedAt
+                      ).toLocaleDateString()}
+                    </span>
+                    <div className="flex gap-2">
+                      {team.projectAbstract.mentorApproval && (
+                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                          Mentor ✓
+                        </span>
+                      )}
+                      {team.projectAbstract.adminApproval && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                          Admin ✓
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Role Specification */}
+        {team.roleSpecification && (
+          <div>
+            <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+              <FaUsers className="mr-2 text-orange-600" />
+              Role Specification
+              {team.roleSpecification.status && (
+                <span
+                  className={`ml-3 px-3 py-1 text-xs font-medium rounded-full ${
+                    team.roleSpecification.status === "submitted" ||
+                    team.roleSpecification.status === "admin_approved" ||
+                    team.roleSpecification.status === "mentor_approved"
+                      ? "bg-green-100 text-green-800"
+                      : team.roleSpecification.status === "rejected"
+                      ? "bg-red-100 text-red-800"
+                      : "bg-yellow-100 text-yellow-800"
+                  }`}
+                >
+                  {team.roleSpecification.status
+                    .replace("_", " ")
+                    .toUpperCase()}
+                </span>
+              )}
+            </h4>
+
+            {team.roleSpecification.assignments &&
+            team.roleSpecification.assignments.length > 0 ? (
+              <div className="space-y-4">
+                {team.roleSpecification.assignments.map((assignment, index) => (
+                  <div
+                    key={index}
+                    className="bg-orange-50 p-4 rounded-lg border border-orange-200"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-orange-200 rounded-full flex items-center justify-center">
+                        <span className="font-bold text-orange-800">
+                          {(
+                            assignment.member?.name || `Member ${index + 1}`
+                          ).charAt(0)}
+                        </span>
+                      </div>
+                      <div>
+                        <h5 className="font-semibold text-orange-800">
+                          {assignment.member?.name || `Member ${index + 1}`}
+                        </h5>
+                        {assignment.modules &&
+                          assignment.modules.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {assignment.modules.map((module, moduleIndex) => (
+                                <span
+                                  key={moduleIndex}
+                                  className="bg-orange-200 text-orange-800 px-2 py-0.5 rounded text-xs"
+                                >
+                                  {module}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                      </div>
+                    </div>
+
+                    {/* Activities */}
+                    {assignment.activities &&
+                      assignment.activities.length > 0 && (
+                        <div className="space-y-2">
+                          <h6 className="font-medium text-gray-700 text-sm">
+                            Activities:
+                          </h6>
+                          {assignment.activities.map((activity, actIndex) => (
+                            <div
+                              key={actIndex}
+                              className="bg-white p-3 rounded-lg border border-orange-100"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-800">
+                                    {activity.name}
+                                  </div>
+                                  {activity.details && (
+                                    <div className="text-sm text-gray-600 mt-1">
+                                      {activity.details}
+                                    </div>
+                                  )}
+                                  <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                                    {activity.softDeadline && (
+                                      <span>
+                                        Soft:{" "}
+                                        {new Date(
+                                          activity.softDeadline
+                                        ).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                    {activity.hardDeadline && (
+                                      <span>
+                                        Hard:{" "}
+                                        {new Date(
+                                          activity.hardDeadline
+                                        ).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <span
+                                  className={`px-2 py-1 text-xs font-medium rounded ${
+                                    activity.status === "completed"
+                                      ? "bg-green-100 text-green-800"
+                                      : activity.status === "in-progress"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : "bg-gray-100 text-gray-800"
+                                  }`}
+                                >
+                                  {activity.status || "pending"}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                  </div>
+                ))}
+
+                {/* Submission Info */}
+                {team.roleSpecification.submittedAt && (
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="flex items-center justify-between text-sm text-gray-600">
+                      <span>
+                        Submitted:{" "}
+                        {new Date(
+                          team.roleSpecification.submittedAt
+                        ).toLocaleDateString()}
+                      </span>
+                      <div className="flex gap-2">
+                        {team.roleSpecification.mentorApproval && (
+                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                            Mentor ✓
+                          </span>
+                        )}
+                        {team.roleSpecification.adminApproval && (
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                            Admin ✓
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-gray-50 p-4 rounded-lg border text-center text-gray-500">
+                No role assignments specified
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Weekly Status Matrix */}
+        {team.evaluation?.weeklyStatus &&
+          team.evaluation.weeklyStatus.length > 0 && (
+            <div>
+              <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                <FaCheckCircle className="mr-2 text-indigo-600" />
+                Weekly Status Matrix
+              </h4>
+              <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                <div className="overflow-x-auto">
+                  <table className="w-full bg-white rounded-lg border border-indigo-200">
+                    <thead className="bg-indigo-100">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-indigo-800 border-b border-indigo-200">
+                          Week
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-indigo-800 border-b border-indigo-200">
+                          Date Range
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-indigo-800 border-b border-indigo-200">
+                          Module
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-indigo-800 border-b border-indigo-200">
+                          Progress
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-indigo-800 border-b border-indigo-200">
+                          Score
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-indigo-800 border-b border-indigo-200">
+                          Submitted
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {team.evaluation.weeklyStatus.map((week, index) => (
+                        <tr
+                          key={index}
+                          className={
+                            index % 2 === 0 ? "bg-white" : "bg-indigo-25"
+                          }
+                        >
+                          <td className="px-4 py-3 text-sm text-gray-800 border-b border-gray-200">
+                            Week {week.week}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 border-b border-gray-200">
+                            {week.dateRange?.from && week.dateRange?.to && (
+                              <>
+                                {new Date(
+                                  week.dateRange.from
+                                ).toLocaleDateString()}{" "}
+                                -
+                                {new Date(
+                                  week.dateRange.to
+                                ).toLocaleDateString()}
+                              </>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-800 border-b border-gray-200">
+                            {week.module}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 border-b border-gray-200">
+                            <div
+                              className="max-w-xs truncate"
+                              title={week.progress}
+                            >
+                              {week.progress}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm border-b border-gray-200">
+                            {week.mentorScore !== undefined ? (
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-medium ${
+                                  week.mentorScore >= 8
+                                    ? "bg-green-100 text-green-800"
+                                    : week.mentorScore >= 6
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {week.mentorScore}/10
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">
+                                Not scored
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 border-b border-gray-200">
+                            {week.submittedAt &&
+                              new Date(week.submittedAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Weekly Status Summary */}
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white p-3 rounded-lg border border-indigo-200">
+                    <div className="text-sm text-gray-600">Total Weeks</div>
+                    <div className="font-semibold text-indigo-700">
+                      {team.evaluation.weeklyStatus.length}
+                    </div>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-indigo-200">
+                    <div className="text-sm text-gray-600">Average Score</div>
+                    <div className="font-semibold text-indigo-700">
+                      {team.evaluation.weeklyStatus.length > 0
+                        ? (
+                            team.evaluation.weeklyStatus
+                              .filter((w) => w.mentorScore !== undefined)
+                              .reduce((acc, w) => acc + w.mentorScore, 0) /
+                            team.evaluation.weeklyStatus.filter(
+                              (w) => w.mentorScore !== undefined
+                            ).length
+                          ).toFixed(1)
+                        : "N/A"}
+                    </div>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-indigo-200">
+                    <div className="text-sm text-gray-600">
+                      Latest Submission
+                    </div>
+                    <div className="font-semibold text-indigo-700">
+                      {team.evaluation.weeklyStatus.length > 0
+                        ? new Date(
+                            Math.max(
+                              ...team.evaluation.weeklyStatus.map(
+                                (w) => new Date(w.submittedAt)
+                              )
+                            )
+                          ).toLocaleDateString()
+                        : "N/A"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3 pt-4 border-t">
           {(team.status === "pending" || team.status === "rejected") && (

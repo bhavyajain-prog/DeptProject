@@ -58,7 +58,7 @@ router.get(
       members: { $exists: true, $not: { $size: 0 } },
     })
       .select(
-        "_id code name leader members projectChoices mentor status feedback"
+        "_id code name leader members projectChoices mentor status feedback finalProject"
       )
       .populate({
         path: "members.student",
@@ -78,6 +78,10 @@ router.get(
       })
       .populate({
         path: "projectChoices",
+        select: "_id title description category",
+      })
+      .populate({
+        path: "finalProject",
         select: "_id title description category",
       })
       .exec();
@@ -958,6 +962,21 @@ router.post(
     await team.save();
     await mentor.save();
     res.status(200).json({ message: "Mentor allocated successfully" });
+  })
+);
+
+router.post(
+  "/approve-form/:id",
+  authenticate,
+  authorizeRoles("admin"),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { formType, feedback } = req.body;
+    const team = await Team.findById(id);
+    if (!team) {
+      return res.status(404).json({ message: "Team not found" });
+    }
+    
   })
 );
 

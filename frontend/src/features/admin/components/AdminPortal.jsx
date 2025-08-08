@@ -162,22 +162,11 @@ export default function AdminPortal() {
             description="Create, update, and oversee projects. Manage project allocations and track progress."
           />
           <AdminActionCard
-            to="/admin/view/forms"
+            to="/admin/view-forms"
             title="View Forms"
             icon={<FormsIcon />}
             description="Access and review submitted forms for students, mentors, and projects. Manage form statuses and feedback."
           />
-          {/* 
-          You can add more cards here. For a 2-column layout on larger screens, 
-          consider if you want to keep it even or if a 5th card would go to a new row.
-          Example for a potential settings card:
-          <AdminActionCard
-            to="/admin/settings"
-            title="System Settings"
-            icon={<SettingsIcon />}
-            description="Configure global application settings, allocation parameters, and system preferences."
-          />
-          */}
         </div>
 
         {/* Danger Zone - Flush Data Section */}
