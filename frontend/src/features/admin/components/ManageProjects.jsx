@@ -131,7 +131,7 @@ const ProjectCard = ({ project, onAction }) => {
             </button>
           </>
         )}
-        {!project.rejectedAt && (
+        {!project.rejectedAt && project.assignedTeams?.length < project.maxTeams && (
           <button
             onClick={() => onAction("delete", project)}
             className="text-sm bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md flex items-center"

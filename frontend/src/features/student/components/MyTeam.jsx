@@ -776,6 +776,19 @@ export default function MyTeam() {
                       {team.mentor.assigned.mentorData?.designation}
                     </div>
                   </div>
+                ) : team.mentor?.currentPreference === -1 ? (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-800">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FaTimes className="text-red-500" />
+                      <span className="font-semibold">
+                        Manual Allocation Required
+                      </span>
+                    </div>
+                    <p className="text-sm">
+                      Your team requires a mentor to be manually allocated.
+                      Please contact the administrator to get a mentor assigned.
+                    </p>
+                  </div>
                 ) : team.mentor?.preferences &&
                   team.mentor.preferences.length > 0 ? (
                   <div>

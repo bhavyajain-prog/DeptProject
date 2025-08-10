@@ -1003,9 +1003,17 @@ const ActionModal = ({
   const [status, setStatus] = useState("");
   const [feedback, setFeedback] = useState("");
   const [selectedMentor, setSelectedMentor] = useState("");
+  const [selectedProject, setSelectedProject] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (!team) return null;
+  // Reset local state when modal opens for a different team/action
+  useEffect(() => {
+    setStatus("");
+    setFeedback("");
+    setSelectedMentor("");
+    // Preselect existing final project if present
+    setSelectedProject(team?.finalProject?._id || "");
+  }, [team, action]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1023,7 +1031,22 @@ const ActionModal = ({
           });
         }
       } else if (action === "allocateMentor") {
-        await axios.post(`/admin/allocate/${team._id}/${selectedMentor}`, {});
+        // Validate selections
+        if (!selectedMentor) {
+          throw new Error("Please select a mentor to allocate.");
+        }
+
+        // If team doesn't already have a final project, require one
+        const finalProjectId = team?.finalProject?._id || selectedProject;
+        // Require final project selection only if choices exist and none is already allocated/selected
+        if (!finalProjectId && (team?.projectChoices?.length > 0)) {
+          throw new Error("Please select a final project from the team's choices.");
+        }
+
+        await axios.post(`/admin/allocate/${team._id}/${selectedMentor}`, {
+          // Send only if present; backend treats it as optional
+          ...(finalProjectId ? { finalProject: finalProjectId } : {}),
+        });
       }
 
       alert(
@@ -1049,8 +1072,8 @@ const ActionModal = ({
       onClose={onClose}
       title={
         action === "approveReject"
-          ? `Approve/Reject Team ${team.code}`
-          : `Allocate Mentor to Team ${team.code}`
+          ? `Approve/Reject Team ${team?.code || ""}`
+          : `Allocate Mentor to Team ${team?.code || ""}`
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -1086,23 +1109,53 @@ const ActionModal = ({
             </div>
           </>
         ) : (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Mentor
-            </label>
-            <select
-              value={selectedMentor}
-              onChange={(e) => setSelectedMentor(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-              required
-            >
-              <option value="">Select a mentor</option>
-              {mentors.map((mentor) => (
-                <option key={mentor._id} value={mentor._id}>
-                  {mentor.name || mentor.username} - {mentor.email}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Mentor
+              </label>
+              <select
+                value={selectedMentor}
+                onChange={(e) => setSelectedMentor(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                required
+              >
+                <option value="">Select a mentor</option>
+                {mentors.map((mentor) => (
+                  <option key={mentor._id} value={mentor._id}>
+                    {mentor.name || mentor.username} - {mentor.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Final Project selection if not already allocated */}
+            {!team?.finalProject && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Final Project (from team choices)
+                </label>
+                {team?.projectChoices?.length > 0 ? (
+                  <select
+                    value={selectedProject}
+                    onChange={(e) => setSelectedProject(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    required
+                  >
+                    <option value="">Choose project</option>
+                    {team.projectChoices.map((proj) => (
+                      <option key={proj._id} value={proj._id}>
+                        {proj.title} {proj.category ? `- ${proj.category}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">
+                    This team has no project choices. Add choices before allocating a final project.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1164,11 +1217,25 @@ export default function ManageTeams() {
 
   const fetchMentors = async () => {
     try {
-      const response = await axios.get("/admin/mentors");
-      setMentors(response.data);
+      const response = await axios.get("/admin/remaining-mentors");
+      setMentors(response.data.mentors);
     } catch (error) {
       console.error("Error fetching mentors:", error);
     }
+  };
+
+  // Get mentors filtered for a specific team (exclude mentors already in team preferences)
+  const getFilteredMentorsForTeam = (team) => {
+    if (!team) return mentors;
+    const prefs = team.mentor?.preferences || [];
+    // preferences could be populated Users or plain ids
+    const prefIdSet = new Set(
+      prefs.map((p) => {
+        if (!p) return "";
+        return typeof p === "string" ? p : p._id || "";
+      })
+    );
+    return mentors.filter((m) => !prefIdSet.has(m._id));
   };
 
   const filteredTeams = teams.filter((team) => {
@@ -1398,7 +1465,7 @@ export default function ManageTeams() {
           onClose={() => setShowActionModal(null)}
           team={showActionModal?.team}
           action={showActionModal?.action}
-          mentors={mentors}
+          mentors={getFilteredMentorsForTeam(showActionModal?.team)}
           onRefresh={fetchTeams}
           setShowActionModal={setShowActionModal}
         />
