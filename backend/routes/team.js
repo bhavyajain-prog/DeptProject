@@ -52,15 +52,15 @@ router.get(
       })
       .populate({
         path: "feedback.byUser",
-        select: "name username role",
+        select: "name email role",
       })
       .populate({
         path: "projectAbstract.submittedBy",
-        select: "name username",
+        select: "name email",
       })
       .populate({
         path: "roleSpecification.submittedBy",
-        select: "name username",
+        select: "name email",
       })
       .populate({
         path: "roleSpecification.assignments.member",
@@ -68,7 +68,7 @@ router.get(
       })
       .populate({
         path: "evaluation.weeklyStatus.submittedBy",
-        select: "name username",
+        select: "name email",
       });
 
     if (!team) {
@@ -90,15 +90,17 @@ router.put(
 
     // Validate required fields
     if (!projectTrack || !tools || !modules) {
-      return res.status(400).json({ 
-        message: "Project track, tools, and modules are required" 
+      return res.status(400).json({
+        message: "Project track, tools, and modules are required",
       });
     }
 
     // Find the student's team
     const student = await User.findById(req.user._id);
     if (!student || !student.studentData?.currentTeam) {
-      return res.status(404).json({ message: "No team found for this student" });
+      return res
+        .status(404)
+        .json({ message: "No team found for this student" });
     }
 
     const team = await Team.findById(student.studentData.currentTeam);
@@ -109,40 +111,40 @@ router.put(
     // Check if user is team leader or member
     const isLeader = team.leader.toString() === req.user._id.toString();
     const isMember = team.members.some(
-      member => member.student.toString() === req.user._id.toString()
+      (member) => member.student.toString() === req.user._id.toString()
     );
 
     if (!isLeader && !isMember) {
-      return res.status(403).json({ 
-        message: "Only team members can update project abstract" 
+      return res.status(403).json({
+        message: "Only team members can update project abstract",
       });
     }
 
     // Update project abstract
     team.projectAbstract = {
       projectTrack,
-      tools: tools.map(tool => ({
+      tools: tools.map((tool) => ({
         name: tool.name,
         version: tool.version || "",
         type: tool.type || "",
-        purpose: tool.purpose || ""
+        purpose: tool.purpose || "",
       })),
-      modules: modules.map(module => ({
+      modules: modules.map((module) => ({
         name: module.name,
-        functionality: module.functionality || ""
+        functionality: module.functionality || "",
       })),
       submittedAt: new Date(),
       submittedBy: req.user._id,
       status: "submitted",
       mentorApproval: false,
-      adminApproval: false
+      adminApproval: false,
     };
 
     await team.save();
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: "Project abstract updated successfully",
-      projectAbstract: team.projectAbstract
+      projectAbstract: team.projectAbstract,
     });
   })
 );
@@ -157,15 +159,17 @@ router.put(
 
     // Validate required fields
     if (!assignments || !Array.isArray(assignments)) {
-      return res.status(400).json({ 
-        message: "Assignments array is required" 
+      return res.status(400).json({
+        message: "Assignments array is required",
       });
     }
 
     // Find the student's team
     const student = await User.findById(req.user._id);
     if (!student || !student.studentData?.currentTeam) {
-      return res.status(404).json({ message: "No team found for this student" });
+      return res
+        .status(404)
+        .json({ message: "No team found for this student" });
     }
 
     const team = await Team.findById(student.studentData.currentTeam);
@@ -176,42 +180,52 @@ router.put(
     // Check if user is team leader or member
     const isLeader = team.leader.toString() === req.user._id.toString();
     const isMember = team.members.some(
-      member => member.student.toString() === req.user._id.toString()
+      (member) => member.student.toString() === req.user._id.toString()
     );
 
     if (!isLeader && !isMember) {
-      return res.status(403).json({ 
-        message: "Only team members can update role specification" 
+      return res.status(403).json({
+        message: "Only team members can update role specification",
       });
     }
 
     // Validate assignments
     for (const assignment of assignments) {
-      if (!assignment.member || !assignment.modules || !Array.isArray(assignment.modules)) {
-        return res.status(400).json({ 
-          message: "Each assignment must have a member ID and modules array" 
+      if (
+        !assignment.member ||
+        !assignment.modules ||
+        !Array.isArray(assignment.modules)
+      ) {
+        return res.status(400).json({
+          message: "Each assignment must have a member ID and modules array",
         });
       }
     }
 
     // Update role specification
     team.roleSpecification = {
-      assignments: assignments.map(assignment => ({
+      assignments: assignments.map((assignment) => ({
         member: assignment.member,
         modules: assignment.modules,
-        activities: assignment.activities ? assignment.activities.map(activity => ({
-          name: activity.name,
-          softDeadline: activity.softDeadline ? new Date(activity.softDeadline) : null,
-          hardDeadline: activity.hardDeadline ? new Date(activity.hardDeadline) : null,
-          details: activity.details || "",
-          status: activity.status || "pending"
-        })) : []
+        activities: assignment.activities
+          ? assignment.activities.map((activity) => ({
+              name: activity.name,
+              softDeadline: activity.softDeadline
+                ? new Date(activity.softDeadline)
+                : null,
+              hardDeadline: activity.hardDeadline
+                ? new Date(activity.hardDeadline)
+                : null,
+              details: activity.details || "",
+              status: activity.status || "pending",
+            }))
+          : [],
       })),
       submittedAt: new Date(),
       submittedBy: req.user._id,
       status: "submitted",
       mentorApproval: false,
-      adminApproval: false
+      adminApproval: false,
     };
 
     await team.save();
@@ -219,12 +233,12 @@ router.put(
     // Populate the assignments with member details for response
     await team.populate({
       path: "roleSpecification.assignments.member",
-      select: "name email username studentData.rollNumber"
+      select: "name email username studentData.rollNumber",
     });
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: "Role specification updated successfully",
-      roleSpecification: team.roleSpecification
+      roleSpecification: team.roleSpecification,
     });
   })
 );
@@ -237,22 +251,24 @@ router.get(
   asyncHandler(async (req, res) => {
     const student = await User.findById(req.user._id);
     if (!student || !student.studentData?.currentTeam) {
-      return res.status(404).json({ message: "No team found for this student" });
+      return res
+        .status(404)
+        .json({ message: "No team found for this student" });
     }
 
     const team = await Team.findById(student.studentData.currentTeam)
       .select("projectAbstract")
       .populate({
         path: "projectAbstract.submittedBy",
-        select: "name username"
+        select: "name email",
       });
 
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }
 
-    res.status(200).json({ 
-      projectAbstract: team.projectAbstract || null
+    res.status(200).json({
+      projectAbstract: team.projectAbstract || null,
     });
   })
 );
@@ -265,26 +281,28 @@ router.get(
   asyncHandler(async (req, res) => {
     const student = await User.findById(req.user._id);
     if (!student || !student.studentData?.currentTeam) {
-      return res.status(404).json({ message: "No team found for this student" });
+      return res
+        .status(404)
+        .json({ message: "No team found for this student" });
     }
 
     const team = await Team.findById(student.studentData.currentTeam)
       .select("roleSpecification")
       .populate({
         path: "roleSpecification.submittedBy",
-        select: "name username"
+        select: "name email",
       })
       .populate({
         path: "roleSpecification.assignments.member",
-        select: "name email username studentData.rollNumber"
+        select: "name email username studentData.rollNumber",
       });
 
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }
 
-    res.status(200).json({ 
-      roleSpecification: team.roleSpecification || null
+    res.status(200).json({
+      roleSpecification: team.roleSpecification || null,
     });
   })
 );

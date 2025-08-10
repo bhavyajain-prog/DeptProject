@@ -71,7 +71,7 @@ const teamSchema = new mongoose.Schema(
       },
     ],
 
-    githubRepo: { type: String, required: true },
+    githubRepo: { type: String },
 
     projectAbstract: {
       projectTrack: {
