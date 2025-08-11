@@ -111,7 +111,7 @@ export default function StudentPortal() {
                 icon={<FaUsers />}
               />
               <StudentActionCard
-                to="/team-details" // Placeholder route
+                to="/team-details"
                 title="Manage Team"
                 description="Leader-only: Finalize team details and preferences."
                 icon={<FaClipboardList />}

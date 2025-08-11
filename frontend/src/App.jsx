@@ -23,6 +23,7 @@ import CreateTeam from "./features/student/components/CreateTeam";
 import MyTeam from "./features/student/components/MyTeam";
 import JoinTeam from "./features/student/components/JoinTeam";
 import ProposeProject from "./features/student/components/ProposeProject";
+import TeamDetails from "./features/student/components/TeamDetails";
 
 import MentorPortal from "./features/mentor/components/MentorPortal";
 import TeamSelection from "./features/mentor/components/TeamSelection";
@@ -34,10 +35,8 @@ import ManageMentors from "./features/admin/components/ManageMentors";
 import ManageStudents from "./features/admin/components/ManageStudents";
 import ManageProjects from "./features/admin/components/ManageProjects";
 
-// Temporary form components
-import Form1 from "../temp/form1";
-import Form2 from "../temp/form2";
-import Form3 from "../temp/form3";
+import ProjectAbstractForm from "./features/forms/components/Form1";
+import RoleSpecificationForm from "./features/forms/components/Form2";
 
 export default function App() {
   return (
@@ -148,6 +147,14 @@ export default function App() {
                   </RoleBasedRoute>
                 }
               />
+              <Route
+                path="/team-details"
+                element={
+                  <RoleBasedRoute roles={["student"]}>
+                    <TeamDetails />
+                  </RoleBasedRoute>
+                }
+              />
               {/* Mentor Routes */}
               <Route
                 path="/mentor/home"
@@ -165,28 +172,20 @@ export default function App() {
                   </RoleBasedRoute>
                 }
               />
-              {/* Temporary Form Routes */}
+              {/*Forms */}
               <Route
                 path="/project-abstract"
                 element={
-                  <RoleBasedRoute roles={["student", "mentor", "admin", "dev"]}>
-                    <Form1 />
+                  <RoleBasedRoute roles={["student"]}>
+                    <ProjectAbstractForm />
                   </RoleBasedRoute>
                 }
               />
               <Route
                 path="/role-specification"
                 element={
-                  <RoleBasedRoute roles={["student", "mentor", "admin", "dev"]}>
-                    <Form2 />
-                  </RoleBasedRoute>
-                }
-              />
-              <Route
-                path="/weekly-status"
-                element={
-                  <RoleBasedRoute roles={["student", "mentor", "admin", "dev"]}>
-                    <Form3 />
+                  <RoleBasedRoute roles={["student"]}>
+                    <RoleSpecificationForm />
                   </RoleBasedRoute>
                 }
               />
