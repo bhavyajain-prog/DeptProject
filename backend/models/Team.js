@@ -225,7 +225,7 @@ teamSchema.virtual("teamSize").get(function () {
 });
 
 teamSchema.virtual("averageWeeklyScore").get(function () {
-  const scores = this.evaluation?.weeklyProgress?.map((w) => w.score) || [];
+  const scores = this.evaluation?.weeklyStatus?.map((w) => w.mentorScore) || [];
   if (scores.length === 0) return 0;
   return scores.reduce((acc, score) => acc + score, 0) / scores.length;
 });
@@ -238,19 +238,23 @@ teamSchema.virtual("completionPercentage").get(function () {
 
 teamSchema.virtual("isFormComplete").get(function () {
   return {
-    projectAbstract:
-      this.projectAbstract?.status === "submitted" ||
-      this.projectAbstract?.status === "approved",
-    roleSpecification:
-      this.roleSpecification?.status === "submitted" ||
-      this.roleSpecification?.status === "approved",
+    projectAbstract: [
+      "submitted",
+      "mentor_approved",
+      "admin_approved",
+    ].includes(this.projectAbstract?.status),
+    roleSpecification: [
+      "submitted",
+      "mentor_approved",
+      "admin_approved",
+    ].includes(this.roleSpecification?.status),
     hasWeeklyStatus: (this.evaluation?.weeklyStatus?.length || 0) > 0,
   };
 });
 
 teamSchema.methods.addWeeklyStatus = function (weekData, studentId) {
   if (!this.evaluation) {
-    this.evaluation = { weeklyProgress: [], weeklyStatus: [] };
+    this.evaluation = { weeklyStatus: [] };
   }
   if (!this.evaluation.weeklyStatus) {
     this.evaluation.weeklyStatus = [];

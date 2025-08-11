@@ -91,7 +91,7 @@ router.get(
       };
     });
     console.log("Fetched teams for mentor:", teams.length, formatTeams);
-    
+
     res.status(200).json(formatTeams);
   })
 );
@@ -478,7 +478,6 @@ router.post(
     team.mentor.assigned = mentor._id;
     team.mentor.assignedAt = Date.now();
     team.finalProject = finalProject;
-    project.isAvailable = false;
     project.assignedTeams.push(team._id);
     if (feedback) {
       team.feedback.push({ message: feedback, byUser: mentor._id });

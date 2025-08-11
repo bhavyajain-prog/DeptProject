@@ -110,7 +110,7 @@ router.get(
       .populate("proposedBy", "name email role")
       .populate("approvedBy", "name email role")
       .populate("assignedTeams", "code leader members")
-      .lean();
+      .lean({ virtuals: true });
     if (!projects || projects.length === 0) {
       return res.status(404).json({ message: "No projects found" });
     }
@@ -976,7 +976,6 @@ router.post(
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }
-    
   })
 );
 
